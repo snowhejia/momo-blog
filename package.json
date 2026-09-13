@@ -1,5 +1,5 @@
 {
-  "name": "hejia-homepage",
+  "name": "momo-blog",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -47,5 +47,15 @@
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "^8.3.0"
-  }
+  },
+  "description": "A self-hosted Bento personal space with inline editing, a photo gallery, music and a private guestbook.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snowhejia/momo-blog.git"
+  },
+  "bugs": {
+    "url": "https://github.com/snowhejia/momo-blog/issues"
+  },
+  "homepage": "https://github.com/snowhejia/momo-blog#readme"
 }
