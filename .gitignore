@@ -1,0 +1,36 @@
+# Dependencies and generated builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local content, uploads, accounts, sessions, secrets and database backups
+data/
+uploads/
+backups/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+.env
+.env.*
+!.env.example
+*setup-token*
+*.pem
+*.key
+
+# Screenshots, design references, browser profiles and local reports
+artifacts/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Only the approved demo avatar belongs in the repository
+assets/profile/*
+!assets/profile/avatar-demo.webp
+!assets/profile/README.md

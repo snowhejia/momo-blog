@@ -1,0 +1,51 @@
+{
+  "name": "hejia-homepage",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24.14.0 <25"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"tsx watch --env-file-if-exists=.env server/index.ts\" \"vite --host 127.0.0.1\"",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.server.json",
+    "start": "node --env-file-if-exists=.env dist/server/index.js",
+    "test": "tsx --test tests/*.test.ts",
+    "format": "prettier --write client server shared tests vite.config.ts",
+    "test:browser": "node scripts/browser-qa.mjs",
+    "check:publish": "node scripts/check-publish.mjs"
+  },
+  "dependencies": {
+    "better-auth": "^1.7.4",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "ffmpeg-static": "^5.3.0",
+    "file-type": "^22.1.0",
+    "kysely": "^0.29.5",
+    "lucide-react": "^1.45.0",
+    "multer": "^2.3.0",
+    "music-metadata": "^11.15.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.3",
+    "sharp": "^0.35.4",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^24.13.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/supertest": "^7.2.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "playwright": "^1.62.1",
+    "prettier": "^3.9.6",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
