@@ -2,6 +2,8 @@
 
 米白、墨黑、青柠色的一页式 Bento 个人站。像素猫仅作为品牌标识和签到反馈。React + TypeScript + Vite + Express + SQLite；数据库、素材和认证在本机独立保存。
 
+![Bento 个人首页预览](docs/images/homepage-preview.png)
+
 仓库只包含代码和示例素材。默认的 Momo 资料、Idea Garden 项目、文章、照片及音乐均用于演示，社交链接留空；毛绒猫头像经提供者同意作为示例发布。首次启动会在本机生成独立数据库，不附带管理员账号、留言、访问记录或私人上传内容。
 
 ## 本地使用
