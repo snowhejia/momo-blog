@@ -1589,6 +1589,9 @@ img.project-cover {
   text-align: left;
   font: inherit;
 }
+.collection-open:hover:not(:disabled) {
+  filter: none;
+}
 .collection-open::after {
   content: "";
   position: absolute;
