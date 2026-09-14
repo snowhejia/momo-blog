@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   mkdtemp,
+  mkdir,
   rm,
   writeFile,
   readdir,
@@ -28,7 +29,11 @@ const origin = "http://127.0.0.1:4999";
 test("独立数据库：首页、单管理员、素材、访客和持久化", async (t) => {
   const folder = await mkdtemp(join(tmpdir(), "hejia-api-"));
   const dbPath = join(folder, "site.db"),
-    uploads = join(folder, "uploads");
+    uploads = join(folder, "uploads"),
+    staticDir = join(folder, "static");
+  await mkdir(join(staticDir, "assets"), { recursive: true });
+  await writeFile(join(staticDir, "index.html"), "<!doctype html><p>home</p>");
+  await writeFile(join(staticDir, "assets", "app-abc123.js"), "export {};");
   let db = openDatabase(dbPath);
   let instant = new Date("2026-10-03T13:59:59Z");
   const authOptions = {
@@ -44,6 +49,7 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       uploads,
       secret,
       trustProxy: 1,
+      staticDir,
       now: () => instant,
       weather: async () => ({ available: false }),
     });
@@ -70,6 +76,24 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         assert.ok(home.content.photos.every((photo) => photo.demo));
         assert.ok(home.content.tracks.every((track) => track.demo));
         assert.ok(home.content.photos.length);
+        const homeResponse = await guest.get("/api/home").expect(200);
+        assert.equal(
+          homeResponse.headers["cache-control"],
+          "public, max-age=0, must-revalidate",
+        );
+        assert.equal(homeResponse.headers.etag, '"home-1"');
+        await guest
+          .get("/api/home")
+          .set("If-None-Match", homeResponse.headers.etag)
+          .expect(304);
+        await guest
+          .get("/assets/app-abc123.js")
+          .expect(200)
+          .expect(
+            "Cache-Control",
+            "public, max-age=31536000, immutable",
+          );
+        await guest.get("/").expect(200).expect("Cache-Control", "no-cache");
         const state = await guest.get("/api/state").expect(200);
         assert.equal(state.body.auth.initialized, false);
         assert.equal(state.body.stats.totalViews, 0);
@@ -367,7 +391,8 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           await admin
             .get(`/api/media/${id}`)
             .expect(200)
-            .expect("Content-Type", /image\/webp/);
+            .expect("Content-Type", /image\/webp/)
+            .expect("Cache-Control", "private, no-store");
           home = (await admin.get("/api/home")).body;
           home.content.photos.push({
             id: randomUUID(),
@@ -379,7 +404,13 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
             demo: true,
           });
           home = (await admin.put("/api/home").send(home).expect(200)).body;
-          await guest.get(`/api/media/${id}?size=thumb`).expect(200);
+          await guest
+            .get(`/api/media/${id}?size=thumb`)
+            .expect(200)
+            .expect(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
         }
         assert.deepEqual(await readdir(join(uploads, "incoming")), []);
       },

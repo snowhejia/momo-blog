@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { ArrowUpRight, ArrowRight } from "lucide-react";
 import { useSite } from "./store";
 import { sydneyDay } from "../../shared/model";
-import { Cat, Editable } from "./components/Common";
+import { Cat, Dialog, Editable } from "./components/Common";
 import {
   Hero,
   PhotoCard,
@@ -17,9 +17,7 @@ import {
 } from "./components/HomeCards";
 import { MusicCard, SectionPlayer } from "./components/Music";
 import { AdminBar, LoginDialog } from "./components/Auth";
-import { Editor, type EditorSection } from "./components/Editor";
-import { ContentDialog, ContentPage } from "./components/Drawers";
-import { InboxDialog } from "./components/Contact";
+import type { EditorSection } from "./components/Editor";
 import {
   usePageNavigation,
   pageUrl,
@@ -27,6 +25,31 @@ import {
   type Page,
   type Section,
 } from "./navigation";
+const Editor = lazy(() =>
+  import("./components/Editor").then((module) => ({ default: module.Editor })),
+);
+const ContentDialog = lazy(() =>
+  import("./components/Drawers").then((module) => ({
+    default: module.ContentDialog,
+  })),
+);
+const ContentPage = lazy(() =>
+  import("./components/Drawers").then((module) => ({
+    default: module.ContentPage,
+  })),
+);
+const InboxDialog = lazy(() =>
+  import("./components/Contact").then((module) => ({
+    default: module.InboxDialog,
+  })),
+);
+function ModalFallback({ onClose }: { onClose: () => void }) {
+  return (
+    <Dialog title="正在打开…" onClose={onClose}>
+      <p>稍等一下，内容马上就好。</p>
+    </Dialog>
+  );
+}
 export default function App() {
   const { content, loading, error, refresh, toast, auth, refreshAuth } =
     useSite();
@@ -166,13 +189,15 @@ export default function App() {
               </div>
             </>
           ) : (
-            <ContentPage
-              key={route.page}
-              panel={route.page}
-              id={route.id}
-              onSelect={(id) => route.navigate(route.page, id)}
-              onEdit={() => setEditor(route.page as Section)}
-            />
+            <Suspense fallback={null}>
+              <ContentPage
+                key={route.page}
+                panel={route.page}
+                id={route.id}
+                onSelect={(id) => route.navigate(route.page, id)}
+                onEdit={() => setEditor(route.page as Section)}
+              />
+            </Suspense>
           )}
         </main>
         <footer className="site-footer">
@@ -191,24 +216,34 @@ export default function App() {
         </footer>
       </div>
       {panel && (
-        <ContentDialog
-          key={`${panel.kind}:${panel.id}`}
-          panel={panel.kind}
-          id={panel.id}
-          onClose={() => setPanel(null)}
-        />
+        <Suspense fallback={<ModalFallback onClose={() => setPanel(null)} />}>
+          <ContentDialog
+            key={`${panel.kind}:${panel.id}`}
+            panel={panel.kind}
+            id={panel.id}
+            onClose={() => setPanel(null)}
+          />
+        </Suspense>
       )}{" "}
       {editor && (
-        <Editor key={editor} section={editor} onClose={() => setEditor(null)} />
+        <Suspense fallback={<ModalFallback onClose={() => setEditor(null)} />}>
+          <Editor
+            key={editor}
+            section={editor}
+            onClose={() => setEditor(null)}
+          />
+        </Suspense>
       )}{" "}
       {inbox && auth?.authenticated && (
-        <InboxDialog
-          onClose={() => setInbox(false)}
-          onLogin={() => {
-            setInbox(false);
-            setLogin(true);
-          }}
-        />
+        <Suspense fallback={<ModalFallback onClose={() => setInbox(false)} />}>
+          <InboxDialog
+            onClose={() => setInbox(false)}
+            onLogin={() => {
+              setInbox(false);
+              setLogin(true);
+            }}
+          />
+        </Suspense>
       )}
       {login && (
         <LoginDialog

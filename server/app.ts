@@ -122,7 +122,14 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
         .get(visitor),
     };
   };
-  app.get("/api/home", (_req, res) => res.json(readHome(db)));
+  app.get("/api/home", (_req, res) => {
+    const home = readHome(db);
+    // The revision changes with every publish, so browsers can cheaply
+    // revalidate public content without serving an outdated edit.
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+    res.setHeader("ETag", `"home-${home.revision}"`);
+    res.json(home);
+  });
   app.put("/api/home", o.auth.requireAdmin, (req, res) => {
     const input = z
       .object({ revision: z.number().int().positive(), content: contentSchema })
@@ -245,7 +252,8 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     const row = db.prepare("SELECT * FROM media WHERE id=?").get(req.params.id);
     if (!row) throw new HttpError(404, "素材不存在。");
     const publicMedia = referencedMedia(readHome(db).content);
-    if (!publicMedia.has(String(req.params.id)) && !(await o.auth.session(req)))
+    const isPublic = publicMedia.has(String(req.params.id));
+    if (!isPublic && !(await o.auth.session(req)))
       throw new HttpError(404, "素材不存在。");
     const thumb =
       req.query.size === "thumb" &&
@@ -253,17 +261,34 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     if (req.query.size === "thumb" && row.kind === "audio" && !thumb)
       throw new HttpError(404, "这首音乐没有内嵌封面。");
     res.setHeader("Content-Type", String(thumb ? "image/webp" : row.mime));
-    res.setHeader("Cache-Control", "private, no-store");
+    // Published media uses immutable UUID URLs. Draft-only uploads stay private.
+    res.setHeader(
+      "Cache-Control",
+      isPublic
+        ? "public, max-age=31536000, immutable"
+        : "private, no-store",
+    );
     res.sendFile(resolve(o.uploads, String(thumb || row.filename)));
   });
   app.use("/api", (_req, res) =>
     res.status(404).json({ error: "接口不存在。" }),
   );
   if (o.staticDir) {
-    app.use(express.static(o.staticDir));
+    // Vite fingerprints files under /assets, so they are safe to cache forever.
+    app.use(
+      "/assets",
+      express.static(join(o.staticDir, "assets"), {
+        immutable: true,
+        maxAge: "1y",
+      }),
+    );
+    app.use(express.static(o.staticDir, { index: false, maxAge: 0 }));
     app.get(
       ["/", "/login", "/projects", "/articles", "/photos", "/collections"],
-      (_req, res) => res.sendFile(join(o.staticDir!, "index.html")),
+      (_req, res) =>
+        res.sendFile(join(o.staticDir!, "index.html"), {
+          headers: { "Cache-Control": "no-cache" },
+        }),
     );
   }
   app.use(
