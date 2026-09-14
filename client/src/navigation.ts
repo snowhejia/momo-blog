@@ -38,7 +38,8 @@ export function usePageNavigation() {
       !id ||
       route.page !== page ||
       page === "projects" ||
-      page === "articles"
+      page === "articles" ||
+      page === "collections"
     ) {
       document.getElementById("main")?.scrollTo({ top: 0 });
       window.scrollTo({ top: 0 });

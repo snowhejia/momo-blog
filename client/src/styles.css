@@ -1573,12 +1573,58 @@ img.project-cover {
   gap: 22px;
 }
 .collection-list article {
+  position: relative;
   border: 1px solid #e7eade;
   border-radius: 8px;
   overflow: hidden;
 }
-.collection-list article.highlighted {
+.collection-list article:hover {
   border-color: #a7bb7a;
+}
+.collection-list article:has(.collection-open:focus-visible) {
+  outline: 3px solid #779b1c;
+  outline-offset: 4px;
+}
+.collection-open {
+  text-align: left;
+  font: inherit;
+}
+.collection-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.collection-open:focus-visible {
+  outline: none;
+}
+.collection-detail-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 12px;
+}
+.collection-detail {
+  overflow-wrap: anywhere;
+}
+.collection-detail-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70svh;
+  object-fit: contain;
+  border-radius: 8px;
+  margin: 24px 0;
+}
+.collection-detail .image-fallback {
+  min-height: 220px;
+}
+.collection-detail-source {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
 }
 .collection-list article > img {
   width: 100%;
@@ -1608,6 +1654,8 @@ img.project-cover {
   margin-bottom: 8px;
 }
 .collection-list .text-button {
+  position: relative;
+  z-index: 1;
   display: flex;
   margin-top: 15px;
 }

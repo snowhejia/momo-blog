@@ -141,10 +141,11 @@ function ContentBody({
   const selected = onSelect ? id || "" : localSelected;
   const setSelected = onSelect || setLocalSelected;
   useEffect(() => {
-    setFilter(["图片", "网站", "灵感"].includes(id || "") ? id! : "全部");
+    if (!id || ["图片", "网站", "灵感"].includes(id)) setFilter(id || "全部");
   }, [id]);
   const article = content!.articles.find((a) => a.id === selected);
   const project = content!.projects.find((p) => p.id === selected);
+  const collection = content!.collections.find((c) => c.id === selected);
   return (
     <>
       {panel === "photos" && <Album id={selected} onSelect={setSelected} />}
@@ -263,84 +264,137 @@ function ContentBody({
             {!content!.projects.length && <Empty>新的作品正在路上。</Empty>}
           </div>
         ))}
-      {panel === "collections" && (
-        <>
-          <div className="collection-toolbar">
-            <div className="filter-tabs">
-              {["全部", "图片", "网站", "灵感"].map((k) => (
-                <button
-                  key={k}
-                  aria-pressed={k === filter}
-                  onClick={() => {
-                    setFilter(k);
-                    onSelect?.(k === "全部" ? "" : k);
-                  }}
-                >
-                  {k}
-                </button>
+      {panel === "collections" &&
+        (collection ? (
+          <article className="reading-view collection-detail">
+            <button
+              className="text-button back-link"
+              onClick={() => setSelected(filter === "全部" ? "" : filter)}
+            >
+              <ArrowLeft size={16} />
+              返回收集
+            </button>
+            <span className="small-tag">{collection.kind}</span>
+            <h3>{collection.title}</h3>
+            {collection.imageId && (
+              <SafeImage
+                className="collection-detail-image"
+                src={mediaUrl(collection.imageId)}
+                alt={collection.title}
+              />
+            )}
+            <div className="prose">
+              {collection.description.split(/\n\s*\n/).map((p, i) => (
+                <p key={i}>{p}</p>
               ))}
             </div>
-            <label className="search-field">
-              <Search size={16} />
-              <input
-                placeholder="找一点灵感…"
-                aria-label="搜索收集"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="collection-list">
-            {content!.collections
-              .filter(
-                (c) =>
-                  (filter === "全部" || c.kind === filter) &&
-                  `${c.title} ${c.description}`
-                    .toLowerCase()
-                    .includes(query.toLowerCase()),
-              )
-              .map((c) => (
-                <article
-                  key={c.id}
-                  className={c.id === selected ? "highlighted" : ""}
-                >
-                  {c.imageId && (
-                    <SafeImage src={mediaUrl(c.imageId)} alt={c.title} />
-                  )}
-                  <div>
-                    <span className="small-tag">{c.kind}</span>
-                    <h3>{c.title}</h3>
-                    <p>{c.description}</p>
-                    {c.source && (
-                      <small className="source-line">
-                        {c.demo ? "示例素材 · " : ""}
-                        {c.source}
-                      </small>
+            {collection.source && (
+              <p className="collection-detail-source">
+                {collection.demo ? "示例素材 · " : "来源 · "}
+                {collection.source}
+              </p>
+            )}
+            {collection.url && (
+              <a
+                className="button dark"
+                href={collection.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                查看来源
+                <ArrowUpRight size={16} />
+              </a>
+            )}
+          </article>
+        ) : (
+          <>
+            <div className="collection-toolbar">
+              <div className="filter-tabs">
+                {["全部", "图片", "网站", "灵感"].map((k) => (
+                  <button
+                    key={k}
+                    aria-pressed={k === filter}
+                    onClick={() => {
+                      setFilter(k);
+                      onSelect?.(k === "全部" ? "" : k);
+                    }}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+              <label className="search-field">
+                <Search size={16} />
+                <input
+                  placeholder="找一点灵感…"
+                  aria-label="搜索收集"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="collection-list">
+              {content!.collections
+                .filter(
+                  (c) =>
+                    (filter === "全部" || c.kind === filter) &&
+                    `${c.title} ${c.description}`
+                      .toLowerCase()
+                      .includes(query.toLowerCase()),
+                )
+                .map((c) => (
+                  <article key={c.id}>
+                    {c.imageId && (
+                      <SafeImage src={mediaUrl(c.imageId)} alt={c.title} />
                     )}
-                    {c.url && (
-                      <a
-                        className="text-button"
-                        href={c.url}
-                        target="_blank"
-                        rel="noreferrer"
+                    <div>
+                      <span className="small-tag">{c.kind}</span>
+                      <h3>
+                        <button
+                          className="collection-open"
+                          aria-label={`查看${c.title}`}
+                          onClick={() => setSelected(c.id)}
+                        >
+                          {c.title}
+                        </button>
+                      </h3>
+                      <p>{c.description}</p>
+                      {c.source && (
+                        <small className="source-line">
+                          {c.demo ? "示例素材 · " : ""}
+                          {c.source}
+                        </small>
+                      )}
+                      <span
+                        className="collection-detail-hint"
+                        aria-hidden="true"
                       >
-                        查看来源
-                        <ArrowUpRight size={15} />
-                      </a>
-                    )}
-                  </div>
-                </article>
-              ))}
-          </div>
-          {!content!.collections.some(
-            (c) =>
-              (filter === "全部" || c.kind === filter) &&
-              `${c.title} ${c.description}`
-                .toLowerCase()
-                .includes(query.toLowerCase()),
-          ) && <Empty>这个角落还没有收集到灵感。</Empty>}
-        </>
-      )}
+                        查看详情 <ArrowUpRight size={15} />
+                      </span>
+                      {c.url && (
+                        <a
+                          className="text-button"
+                          href={c.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          查看来源
+                          <ArrowUpRight size={15} />
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+            </div>
+            {!content!.collections.some(
+              (c) =>
+                (filter === "全部" || c.kind === filter) &&
+                `${c.title} ${c.description}`
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+            ) && <Empty>这个角落还没有收集到灵感。</Empty>}
+          </>
+        ))}
       {panel === "about" && (
         <div className="about-content">
           <Cat />

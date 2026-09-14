@@ -51,7 +51,9 @@ export default function App() {
     const changedPage = previous.page !== route.page;
     const changedDetail =
       previous.id !== route.id &&
-      (route.page === "projects" || route.page === "articles");
+      (route.page === "projects" ||
+        route.page === "articles" ||
+        route.page === "collections");
     previousRoute.current = { page: route.page, id: route.id };
     if (changedPage || changedDetail) {
       main.current?.scrollTo({ top: 0 });
