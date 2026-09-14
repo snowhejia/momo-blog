@@ -45,6 +45,8 @@ const app = createApp(db, {
   uploads,
   secret,
   secure,
+  // Railway terminates HTTPS at its edge and forwards to this container.
+  trustProxy: secure ? 1 : false,
   staticDir: resolve("dist/client"),
 });
 const server = app.listen(port, process.env.HOST || "127.0.0.1", () =>

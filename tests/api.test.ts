@@ -43,11 +43,13 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       auth: await createSiteAuth(db, authOptions),
       uploads,
       secret,
+      trustProxy: 1,
       now: () => instant,
       weather: async () => ({ available: false }),
     });
   await seed(db, uploads, resolve("assets/demo"));
   let app = await makeApp();
+  assert.equal(app.get("trust proxy"), 1);
   let admin = request.agent(app);
   let guest = request.agent(app);
   let home: HomeResponse;
@@ -271,6 +273,27 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           .expect(200);
         assert.equal(result.body.todayVisitors, 2);
         assert.equal(result.body.totalViews, 3);
+        const proxyErrors: string[] = [];
+        const originalConsoleError = console.error;
+        console.error = (...values: unknown[]) =>
+          proxyErrors.push(values.map(String).join(" "));
+        try {
+          result = await request(app)
+            .post("/api/visits")
+            .set("X-Forwarded-For", "203.0.113.42")
+            .send({ pageViewId: randomUUID() })
+            .expect(200);
+        } finally {
+          console.error = originalConsoleError;
+        }
+        assert.equal(result.body.todayVisitors, 3);
+        assert.equal(result.body.totalViews, 4);
+        assert.equal(
+          proxyErrors.some((line) =>
+            line.includes("ERR_ERL_UNEXPECTED_X_FORWARDED_FOR"),
+          ),
+          false,
+        );
       },
     );
     await t.test(

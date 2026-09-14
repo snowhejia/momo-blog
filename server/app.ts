@@ -28,6 +28,7 @@ export interface AppOptions {
   auth: SiteAuth;
   uploads: string;
   secret: string;
+  trustProxy?: number | false;
   staticDir?: string;
   secure?: boolean;
   now?: () => Date;
@@ -35,6 +36,7 @@ export interface AppOptions {
 }
 export function createApp(db: DatabaseSync, o: AppOptions) {
   const app = express();
+  if (o.trustProxy !== undefined) app.set("trust proxy", o.trustProxy);
   const now = o.now || (() => new Date());
   const weather = o.weather || createWeatherService();
   const audioCover = createAudioCoverReader(db, o.uploads);
