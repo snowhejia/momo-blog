@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { ArrowUpRight, Check } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowUpRight, Check, Palette } from "lucide-react";
 import { Dialog, Cat } from "./Common";
 import { useSite } from "../store";
 import { request } from "../api";
+import { useDialogLayer } from "../dialogLayers";
 export function LoginDialog({ onClose }: { onClose: () => void }) {
   const { auth, refreshAuth, notify } = useSite();
   const [email, setEmail] = useState(""),
@@ -39,6 +41,7 @@ export function LoginDialog({ onClose }: { onClose: () => void }) {
     <Dialog
       title={setup ? "创建你的管理员账号" : "欢迎回来。"}
       eyebrow="YOUR PERSONAL SPACE"
+      busy={pending}
       onClose={() => {
         if (!pending) onClose();
       }}
@@ -48,7 +51,7 @@ export function LoginDialog({ onClose }: { onClose: () => void }) {
         <p>
           {setup
             ? "只需初始化一次，之后登录即可在首页修改内容。"
-            : "登录后，点击页面顶部的「编辑页面」。"}
+            : "登录后，点击页面底部悬浮栏的「编辑页面」。"}
         </p>
         {setup && (
           <label>
@@ -105,9 +108,11 @@ export function LoginDialog({ onClose }: { onClose: () => void }) {
 export function AdminBar({
   onLogin,
   onMessages,
+  onTheme,
 }: {
   onLogin: () => void;
   onMessages: () => void;
+  onTheme: () => void;
 }) {
   const {
     auth,
@@ -121,9 +126,15 @@ export function AdminBar({
     refreshAuth,
     notify,
   } = useSite();
+  const layer = useDialogLayer();
+  const controlsBusy = saving || layer?.busy;
   if (!auth?.authenticated && !editing) return null;
-  return (
-    <div className={`admin-bar ${saveError ? "has-error" : ""}`}>
+  return createPortal(
+    <div
+      className={`admin-bar ${saveError ? "has-error" : ""}`}
+      role="region"
+      aria-label="管理员工具栏"
+    >
       <div className="admin-bar-main">
         <span>
           <span className="green-dot" />
@@ -134,30 +145,64 @@ export function AdminBar({
             : "管理员已登录"}
         </span>
         <div>
+          <button
+            className="admin-theme"
+            data-admin-action="theme"
+            onClick={onTheme}
+            disabled={controlsBusy || !auth?.authenticated}
+            aria-haspopup="dialog"
+          >
+            <Palette size={14} />
+            更换主题
+          </button>
           {editing ? (
             <>
-              <button onClick={() => void cancelEdit()} disabled={saving}>
+              <button
+                onClick={() => void cancelEdit()}
+                disabled={controlsBusy}
+                data-admin-action="cancel"
+              >
                 取消
               </button>
               <button
                 className="admin-save"
+                data-admin-action="save"
                 onClick={() => void save()}
-                disabled={saving}
+                disabled={controlsBusy}
               >
                 {saving ? "保存中…" : "保存修改"}
                 <Check size={14} />
               </button>
               {saveError.includes("登录") && (
-                <button onClick={onLogin}>重新登录</button>
+                <button
+                  onClick={onLogin}
+                  disabled={controlsBusy}
+                  data-admin-action="login"
+                >
+                  重新登录
+                </button>
               )}
             </>
           ) : (
             <>
-              <button onClick={onMessages}>留言箱</button>
-              <button className="admin-save" onClick={beginEdit}>
+              <button
+                onClick={onMessages}
+                disabled={controlsBusy}
+                data-admin-action="messages"
+              >
+                留言箱
+              </button>
+              <button
+                className="admin-save"
+                onClick={beginEdit}
+                disabled={controlsBusy}
+                data-admin-action="edit"
+              >
                 编辑页面
               </button>
               <button
+                disabled={controlsBusy}
+                data-admin-action="logout"
                 onClick={async () => {
                   try {
                     await request("/api/auth/sign-out", {
@@ -181,6 +226,7 @@ export function AdminBar({
           {saveError}
         </div>
       )}
-    </div>
+    </div>,
+    layer?.element ?? document.body,
   );
 }

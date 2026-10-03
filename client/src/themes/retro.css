@@ -1,0 +1,1085 @@
+/* Cartoon pink: illustrated cards using the application's shared geometry. */
+:root[data-theme="blush"] {
+  --ink: #5b2946;
+  --muted: #8b4d70;
+  --paper: #fff6ee;
+  --card: #fffcfa;
+  --line: #e7a9c9;
+  /* Shared accents (quotes, status dots, selections) belong to this theme. */
+  --lime: #ed86b0;
+  --retro-stroke: #b85b89;
+  --retro-shadow: #ed9fc4;
+  --retro-pink: #ffafd0;
+  --retro-mint: #9fe2ce;
+  --retro-blue: #a4cdf5;
+  --retro-yellow: #ffe17e;
+  --window-bar-height: 44px;
+  --cartoon-font: "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --theme-muted: #8b4d70;
+  --theme-prose: #75405d;
+  --theme-surface: #fffdfb;
+  --theme-soft: #fbe1ed;
+  --theme-field: #fffefd;
+  --theme-image-bg: #f4e7ec;
+  --theme-line: #dea0c0;
+  --theme-input-line: #c57fa6;
+  --theme-accent-line: #b85b89;
+  --theme-focus: #963c6b;
+  --theme-accent-ink: #a14676;
+  --theme-on-accent: #62344d;
+  --theme-button: #ffafd0;
+  --theme-button-hover: #ffc7df;
+  --theme-on-button: #5b2946;
+  --theme-chrome: #fffaf5;
+  --theme-chrome-line: #b85b89;
+  --theme-on-chrome: #5b2946;
+  --theme-clock: #fff5d3;
+  --theme-clock-ink: #7e3c65;
+  --theme-clock-accent: #b85b89;
+  --theme-clock-line: #dec194;
+  --theme-danger: #aa355e;
+  --theme-number: #eaa3c8;
+  --theme-scrollbar: #c980a9;
+  --theme-track: #f1d0e5;
+}
+:root[data-theme="blush"] body {
+  background:
+    linear-gradient(#c58caa1f 1px, transparent 1px),
+    linear-gradient(90deg, #c58caa1f 1px, transparent 1px),
+    linear-gradient(165deg, #cef1e7 0%, #ffedf5 42%, #fff2c8 100%);
+  background-size:
+    38px 38px,
+    38px 38px,
+    100% 100%;
+  background-attachment: fixed;
+}
+:root[data-theme="blush"] .site-shell {
+  --gap: 16px;
+}
+:root[data-theme="blush"] .site-header {
+  border-bottom: 2px solid var(--retro-stroke);
+  margin-bottom: 14px;
+}
+:root[data-theme="blush"] .brand > span {
+  font-family: var(--cartoon-font);
+  font-weight: 750;
+  letter-spacing: -1px;
+  color: #aa3e79;
+  text-shadow: 2px 2px 0 #fff;
+}
+:root[data-theme="blush"] .brand i {
+  color: #e878ae;
+}
+:root[data-theme="blush"] .cat {
+  image-rendering: auto;
+}
+:root[data-theme="blush"] .site-header nav {
+  gap: 22px;
+}
+:root[data-theme="blush"] .site-header nav a {
+  padding: 7px 11px;
+  border: 1.5px solid transparent;
+  font-size: 14px;
+}
+:root[data-theme="blush"] .site-header nav a.active {
+  border-color: var(--retro-stroke);
+  background: var(--retro-pink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #e68fb9;
+}
+:root[data-theme="blush"] .site-header nav a.active::after {
+  display: none;
+}
+:root[data-theme="blush"] .card {
+  --window-pad: 18px;
+  padding: var(--window-pad);
+  border: 2px solid var(--retro-stroke);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 4px 5px 0 var(--retro-shadow);
+}
+:root[data-theme="blush"] .hero-top,
+:root[data-theme="blush"] .card > .section-top,
+:root[data-theme="blush"] .clock-top,
+:root[data-theme="blush"] .calendar-top,
+:root[data-theme="blush"] .checkin-card > .eyebrow,
+:root[data-theme="blush"] .music-heading {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: calc(100% + var(--window-pad) * 2);
+  height: var(--window-bar-height);
+  min-height: var(--window-bar-height);
+  margin: calc(-1 * var(--window-pad)) calc(-1 * var(--window-pad)) 12px;
+  padding: 0 14px;
+  background: var(--retro-mint);
+  border-bottom: 2px solid var(--retro-stroke);
+  flex-shrink: 0;
+}
+:root[data-theme="blush"] .hero-top::after {
+  content: "";
+  width: 43px;
+  height: 12px;
+  flex-shrink: 0;
+  background:
+    radial-gradient(
+      circle at 6px 6px,
+      #ffe17e 0 4px,
+      #b85b89 4px 5.5px,
+      transparent 6px
+    ),
+    radial-gradient(
+      circle at 21px 6px,
+      #ceeb92 0 4px,
+      #b85b89 4px 5.5px,
+      transparent 6px
+    ),
+    radial-gradient(
+      circle at 36px 6px,
+      #ffafd0 0 4px,
+      #b85b89 4px 5.5px,
+      transparent 6px
+    );
+}
+:root[data-theme="blush"] .eyebrow {
+  font-family: var(--cartoon-font);
+  font-weight: 650;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+:root[data-theme="blush"] .hero-card {
+  background:
+    linear-gradient(#d6b7cf0f 1px, transparent 1px),
+    linear-gradient(90deg, #d6b7cf0f 1px, transparent 1px), #fffdfa;
+  background-size: 22px 22px;
+}
+:root[data-theme="blush"] .hero-card h1 {
+  font-size: clamp(40px, 3.8vw, 64px);
+  font-weight: 750;
+  letter-spacing: -1.5px;
+  line-height: 1.16;
+  margin-top: 2px;
+  max-width: 76%;
+}
+:root[data-theme="blush"] .hero-card h1::before {
+  background: #ffe9ab;
+  height: 0.24em;
+  top: 0.76em;
+  transform: rotate(-2deg);
+  border: 1px solid #f7d991;
+}
+:root[data-theme="blush"] .hero-copy {
+  font-size: 14px;
+  max-width: 78%;
+}
+:root[data-theme="blush"] .hero-celestial:not(.has-avatar) .hero-orbit {
+  width: 28%;
+  height: auto;
+  aspect-ratio: 180 / 190;
+  top: 21%;
+  right: 1.5%;
+  transform: rotate(4deg);
+  background: url("/assets/themes/desktop-cat.svg") center / contain no-repeat;
+}
+:root[data-theme="blush"] .hero-celestial .hero-orbit span,
+:root[data-theme="blush"] .hero-celestial .hero-orbit i,
+:root[data-theme="blush"] .hero-side-note {
+  display: none;
+}
+:root[data-theme="blush"] .hero-celestial.has-avatar {
+  top: 20%;
+}
+:root[data-theme="blush"] .hero-celestial.has-avatar::before {
+  content: "";
+  position: absolute;
+  right: -7%;
+  bottom: -4%;
+  width: 47%;
+  aspect-ratio: 180 / 190;
+  background: url("/assets/themes/desktop-cat.svg") center / contain no-repeat;
+  transform: rotate(-9deg);
+  z-index: 3;
+}
+:root[data-theme="blush"] .hero-avatar {
+  border-radius: 14px;
+  border: 3px solid #fff8ed;
+  box-shadow:
+    0 0 0 2px var(--retro-stroke),
+    5px 6px 0 var(--retro-pink);
+  transform: rotate(6deg);
+}
+:root[data-theme="blush"] .hero-avatar img,
+:root[data-theme="blush"] .hero-avatar .image-fallback {
+  border-radius: 0;
+}
+:root[data-theme="blush"] .hero-celestial.has-avatar::after {
+  content: "♥";
+  color: #b77797;
+  background: #ffe17e;
+  border: 2px solid var(--retro-stroke);
+  border-radius: 6px;
+  position: absolute;
+  right: 9%;
+  top: 5%;
+  padding: 3px 6px;
+  font-size: 18px;
+  transform: rotate(12deg);
+  z-index: 3;
+}
+:root[data-theme="blush"] .hero-bottom-note {
+  font-family: var(--cartoon-font);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+:root[data-theme="blush"] .button,
+:root[data-theme="blush"] .play-button {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 5px;
+  box-shadow: 3px 3px 0 var(--retro-shadow);
+  font-weight: 650;
+}
+:root[data-theme="blush"] .button.dark,
+:root[data-theme="blush"] .play-button {
+  background: var(--retro-pink);
+  color: var(--ink);
+}
+:root[data-theme="blush"] .button.lime {
+  background: var(--retro-yellow);
+  color: var(--ink);
+}
+:root[data-theme="blush"] .button:hover {
+  filter: none;
+  background: #fae0ed;
+}
+:root[data-theme="blush"] .button:active,
+:root[data-theme="blush"] .play-button:active {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 var(--retro-shadow);
+}
+:root[data-theme="blush"] .hero-button {
+  min-height: 34px;
+  padding: 6px 16px;
+}
+:root[data-theme="blush"] .header-contact > .button:before {
+  display: none;
+}
+:root[data-theme="blush"] .photo-card {
+  padding: var(--window-bar-height) 0 0;
+}
+:root[data-theme="blush"] .photo-open {
+  overflow: hidden;
+  border-radius: 0 0 9px 9px;
+  isolation: isolate;
+}
+:root[data-theme="blush"] .photo-open:hover {
+  filter: none;
+}
+:root[data-theme="blush"] .photo-card::before {
+  content: "PHOTO.JPG";
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: var(--window-bar-height);
+  padding: 0 14px;
+  background: var(--retro-blue);
+  border-bottom: 2px solid var(--retro-stroke);
+  font: 650 11px var(--cartoon-font);
+  letter-spacing: 1px;
+}
+:root[data-theme="blush"] .photo-label {
+  display: none;
+}
+:root[data-theme="blush"] .photo-caption {
+  background: linear-gradient(transparent, #3f293eab);
+}
+:root[data-theme="blush"] .photo-caption button {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 6px;
+  background: #fff6e2;
+}
+:root[data-theme="blush"] .photo-edit {
+  top: calc(var(--window-bar-height) + 7px);
+}
+:root[data-theme="blush"] .clock-card {
+  background: #fff5d3;
+}
+:root[data-theme="blush"] .clock-top {
+  background: #ffb9d6;
+}
+:root[data-theme="blush"] .clock-digits {
+  font-family: var(--cartoon-font);
+  font-size: clamp(64px, 6.4vw, 100px);
+  letter-spacing: -3px;
+  font-weight: 650;
+  text-shadow: none;
+}
+:root[data-theme="blush"] .clock-top .eyebrow {
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}
+:root[data-theme="blush"] .clock-bottom {
+  border-top: 1px dashed var(--retro-stroke);
+}
+:root[data-theme="blush"] .project-card > .section-top {
+  background: #d3ec99;
+}
+:root[data-theme="blush"] .project-title {
+  margin-top: 0;
+}
+:root[data-theme="blush"] .project-title h2 {
+  font-family: var(--cartoon-font);
+  font-size: clamp(26px, 2.5vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+:root[data-theme="blush"] .project-title > span,
+:root[data-theme="blush"] .small-tag {
+  border: 1px solid #c69bad;
+  border-radius: 3px;
+  background: #fff0bd;
+  color: var(--ink);
+}
+:root[data-theme="blush"] .project-preview {
+  border: 2px solid #cba7b9;
+  border-radius: 4px;
+}
+:root[data-theme="blush"] .project-summary {
+  font-size: 13px;
+  margin-bottom: 9px;
+}
+:root[data-theme="blush"] .article-card > .section-top {
+  background: var(--retro-pink);
+}
+:root[data-theme="blush"] .home-articles {
+  margin-top: 0;
+}
+:root[data-theme="blush"] .section-top h2 {
+  font-size: 15px;
+  letter-spacing: 0;
+}
+:root[data-theme="blush"] .home-article img {
+  border: 1px solid #c69bb0;
+  border-radius: 4px;
+}
+:root[data-theme="blush"] .home-article time {
+  font-family: var(--cartoon-font);
+}
+:root[data-theme="blush"] .calendar-top {
+  background: var(--retro-blue);
+  margin-bottom: 8px;
+}
+:root[data-theme="blush"] .calendar-top > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+:root[data-theme="blush"] .calendar-top h2 {
+  font-size: 18px;
+  line-height: 1.15;
+}
+:root[data-theme="blush"] .calendar-top .eyebrow {
+  font-size: 9px;
+  line-height: 1.2;
+}
+:root[data-theme="blush"] .calendar-grid .today {
+  border-radius: 4px;
+  background: #ffafd0;
+  border: 1px solid #b85b89;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 #edd0dc;
+}
+:root[data-theme="blush"] .calendar-footer {
+  border-top: 1px dashed #d9b9c9;
+  padding-top: 8px;
+}
+:root[data-theme="blush"] .checkin-card {
+  background: #fff5d4;
+}
+:root[data-theme="blush"] .checkin-card > .eyebrow {
+  justify-content: space-between;
+  background: #fff0bd;
+  color: #9a5e7a;
+  font-size: 10px;
+}
+:root[data-theme="blush"] .checkin-card > .eyebrow::after {
+  content: "";
+  width: 42px;
+  height: 17px;
+  background: url("/assets/themes/paw-trail.svg") center / contain no-repeat;
+  opacity: 0.7;
+}
+:root[data-theme="blush"] .checkin-main {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0 14px;
+}
+:root[data-theme="blush"] .checkin-main > div {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 62px;
+  padding-left: 74px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+:root[data-theme="blush"] .checkin-main h2 {
+  font-size: 22px;
+  line-height: 1.3;
+  white-space: normal;
+}
+:root[data-theme="blush"] .checkin-greeting {
+  margin-top: 6px;
+}
+:root[data-theme="blush"] .checkin-greeting .cat {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  padding: 7px;
+  background: #fffaf6;
+  border: 2px solid #d98ab0;
+  border-radius: 18px;
+  box-shadow: 3px 3px 0 #efb4cb;
+  transform: translateY(-50%) rotate(-7deg);
+}
+:root[data-theme="blush"] .checkin-greeting > span {
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: none;
+}
+:root[data-theme="blush"] .checkin-main .button {
+  flex-shrink: 0;
+  min-width: 106px;
+  padding: 10px 14px;
+  margin-top: 0;
+  align-self: center;
+}
+:root[data-theme="blush"] .stats-row {
+  flex-shrink: 0;
+  gap: 10px;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+:root[data-theme="blush"] .stats-row > div {
+  min-width: 0;
+  padding: 9px 12px;
+  gap: 4px;
+  border: 1px solid #e0a4bf;
+  border-radius: 9px;
+  background: #ffe2ed;
+}
+:root[data-theme="blush"] .stats-row > div:nth-child(2) {
+  background: #e8f2ce;
+  border-color: #c6d998;
+}
+:root[data-theme="blush"] .stats-row > div:nth-child(3) {
+  background: #e1edff;
+  border-color: #aecbed;
+}
+:root[data-theme="blush"] .stats-row strong {
+  font-family: var(--cartoon-font);
+  font-size: 27px;
+  font-weight: 700;
+  color: #a7477c;
+}
+:root[data-theme="blush"] .collection-card > .section-top {
+  background: #ceb7f6;
+}
+:root[data-theme="blush"] .collection-previews {
+  margin-top: 0;
+}
+:root[data-theme="blush"] .collection-previews button {
+  border: 2px solid #b991a8;
+  border-radius: 4px;
+  padding: 3px;
+  background: #fff5d3;
+  box-shadow: 2px 2px 0 #edd0de;
+}
+:root[data-theme="blush"] .collection-caption {
+  font-size: 11px;
+}
+:root[data-theme="blush"] .music-card {
+  container: music / inline-size;
+}
+:root[data-theme="blush"] .music-heading {
+  background: #a5e8d0;
+  /* Round the header fill without clipping the volume popover. */
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+:root[data-theme="blush"] .music-heading > div:not(.music-actions) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+:root[data-theme="blush"] .music-heading > svg {
+  width: 20px;
+}
+:root[data-theme="blush"] .music-heading strong {
+  font-size: 12px;
+}
+:root[data-theme="blush"] .music-heading .eyebrow {
+  font-size: 9px;
+}
+@container music (max-width: 360px) {
+  :root[data-theme="blush"] .music-heading {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  :root[data-theme="blush"] .music-heading > svg {
+    width: 18px;
+  }
+  :root[data-theme="blush"] .music-heading > div:not(.music-actions) {
+    gap: 6px;
+  }
+  :root[data-theme="blush"] .music-heading .eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  :root[data-theme="blush"] .music-heading h2 {
+    font-size: 12px;
+  }
+  :root[data-theme="blush"] .music-heading > .music-actions {
+    gap: 2px;
+  }
+  :root[data-theme="blush"] .music-actions .edit-trigger,
+  :root[data-theme="blush"] .music-actions .playback-mode-compact,
+  :root[data-theme="blush"] .music-actions .player-options summary,
+  :root[data-theme="blush"] .music-actions .playlist-open {
+    width: 26px;
+    padding-inline: 4px;
+    justify-content: center;
+  }
+  :root[data-theme="blush"] .music-actions .edit-trigger > span {
+    display: none;
+  }
+}
+:root[data-theme="blush"] .album-cover {
+  border: 2px solid #c49eb3;
+  border-radius: 4px;
+}
+:root[data-theme="blush"] .play-button {
+  background: #ffafd0;
+}
+:root[data-theme="blush"] .social-row {
+  border-top: 1px dashed #d093b5;
+}
+:root[data-theme="blush"] .progress {
+  border: 1px solid #c9a2b8;
+  border-radius: 1px;
+  background: linear-gradient(
+    to right,
+    #dc9cba var(--progress),
+    #f5e5ee var(--progress)
+  );
+}
+:root[data-theme="blush"] .site-footer {
+  border-top: 2px solid var(--retro-stroke);
+  margin-top: 15px;
+}
+:root[data-theme="blush"] .friend-card,
+:root[data-theme="blush"] .album-tile,
+:root[data-theme="blush"] .section-content .project-list > button,
+:root[data-theme="blush"] .section-content .collection-list article {
+  background: #fffdfb;
+  border: 2px solid var(--retro-stroke);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 var(--retro-shadow);
+}
+:root[data-theme="blush"]
+  .section-content
+  .collection-list
+  article:not(:has(> img, > .image-fallback)) {
+  border-top-color: var(--retro-stroke);
+}
+:root[data-theme="blush"] .friend-avatar {
+  border: 2px solid #bc8ba4;
+  border-radius: 7px;
+  background: #ffe0ed;
+}
+:root[data-theme="blush"] .friend-card:nth-child(3n + 2) .friend-monogram {
+  background: #e8e0f4;
+  color: #7e628e;
+}
+:root[data-theme="blush"] .friend-card:nth-child(3n) .friend-monogram {
+  background: #cfece5;
+  color: #577f76;
+}
+:root[data-theme="blush"] .section-heading {
+  border-bottom: 2px solid #c799b0;
+}
+:root[data-theme="blush"] .section-number {
+  font-family: var(--cartoon-font);
+  text-shadow: 2px 2px 0 #fff;
+}
+:root[data-theme="blush"] .reading-cover {
+  border: 2px solid #ba8ba5;
+  border-radius: 8px;
+  box-shadow: 5px 5px 0 #eeacd0;
+}
+:root[data-theme="blush"] .reading-detail {
+  background: #fffdf9;
+}
+:root[data-theme="blush"] .filter-tabs button[aria-pressed="true"] {
+  background: #ffb5d3;
+  border: 1px solid #b85b89;
+  box-shadow: 2px 2px 0 #eac0d3;
+  border-radius: 4px;
+}
+:root[data-theme="blush"] .photo-stage {
+  border: 2px solid #bd8ca7;
+  border-radius: 8px;
+  background: #fffaf4;
+}
+:root[data-theme="blush"] .photo-stage > button,
+:root[data-theme="blush"] .album-expand {
+  border: 2px solid #b85b89;
+  border-radius: 5px;
+  background: #fff4dd;
+  box-shadow: 2px 2px 0 #e9bed2;
+}
+:root[data-theme="blush"] .photo-thumb[aria-current="true"] {
+  outline-color: #b85b89;
+}
+:root[data-theme="blush"] .album-photo-number {
+  background: #5b2946ce;
+}
+:root[data-theme="blush"] .dialog {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 12px;
+  background: #fffcfa;
+  box-shadow:
+    8px 8px 0 #dca7c199,
+    0 25px 70px #65425b26;
+}
+:root[data-theme="blush"] .dialog-head {
+  background: #ffbad6;
+  border-bottom: 2px solid var(--retro-stroke);
+}
+:root[data-theme="blush"] .dialog-head h2 {
+  font-size: 23px;
+}
+:root[data-theme="blush"] .dialog::backdrop {
+  background: #66567138;
+  backdrop-filter: blur(3px);
+}
+:root[data-theme="blush"] .dialog-head .icon-button {
+  border: 2px solid #b85b89;
+  border-radius: 5px;
+  background: #ffe17e;
+  box-shadow: 2px 2px 0 #e4aac5;
+}
+:root[data-theme="blush"] .editor-fields input,
+:root[data-theme="blush"] .editor-fields textarea,
+:root[data-theme="blush"] .editor-fields select,
+:root[data-theme="blush"] .contact-form input,
+:root[data-theme="blush"] .contact-form textarea {
+  border-radius: 4px;
+  box-shadow: inset 2px 2px 0 #f3e1eb;
+}
+:root[data-theme="blush"] .edit-trigger,
+:root[data-theme="blush"] .upload-button {
+  background: #ffe0ed;
+  color: var(--ink);
+  border: 1px solid #b96c95;
+  border-radius: 4px;
+}
+:root[data-theme="blush"] .admin-bar {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 5px;
+  background: #fff7db;
+  box-shadow: 4px 4px 0 #e69abc;
+}
+:root[data-theme="blush"] .admin-bar .admin-save {
+  background: #ffafd0;
+  border: 1px solid #b85b89;
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 #e38cb6;
+}
+:root[data-theme="blush"] .admin-bar .admin-theme {
+  border-color: #d3aec1;
+}
+:root[data-theme="blush"] .player-popover {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 #e5b9ce;
+}
+:root[data-theme="blush"] .toast {
+  border: 2px solid var(--retro-stroke);
+  border-radius: 6px;
+  background: #fff2bd;
+  box-shadow: 3px 3px 0 #e5b9ce;
+}
+:root[data-theme="blush"] .playlist-track[aria-pressed="true"] {
+  border: 1px solid #c190a9;
+  border-radius: 5px;
+  background: #ffdfec;
+}
+:root[data-theme="blush"] .playlist-current-cover {
+  border: 2px solid #ba86a0;
+  border-radius: 7px;
+  box-shadow: 5px 5px 0 #eb96bf;
+}
+@media (min-width: 1101px) {
+  :root[data-theme="blush"] .site-shell:not(.section-shell) {
+    min-height: 0;
+  }
+  :root[data-theme="blush"] .bento-grid {
+    grid-template-rows: minmax(0, 1.08fr) minmax(0, 1.1fr) minmax(0, 0.85fr);
+  }
+  :root[data-theme="blush"] .bento-row {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  :root[data-theme="blush"] .hero-card {
+    --hero-body-inset: clamp(16px, 1.6vw, 24px);
+  }
+  :root[data-theme="blush"] .hero-card h1 {
+    font-size: clamp(32px, min(3.8vw, 20cqh), 64px);
+    max-width: 64%;
+    margin-left: var(--hero-body-inset);
+  }
+  :root[data-theme="blush"]
+    .hero-card
+    textarea.inline-edit[aria-label="编辑首页标题"] {
+    font-size: clamp(28px, min(3.4vw, 17cqh), 54px) !important;
+    line-height: 1.1 !important;
+    letter-spacing: -1px;
+    max-width: 64%;
+    margin: 0 0 4px var(--hero-body-inset);
+  }
+  :root[data-theme="blush"] .hero-copy .inline-edit {
+    margin: 1px 0;
+  }
+  :root[data-theme="blush"] .hero-copy {
+    max-width: 64%;
+    margin-left: var(--hero-body-inset);
+  }
+  :root[data-theme="blush"] .hero-button {
+    margin-left: var(--hero-body-inset);
+  }
+  :root[data-theme="blush"] .hero-celestial.has-avatar {
+    top: calc(var(--window-bar-height) + 12px);
+    right: 9%;
+    width: 32%;
+    max-width: min(220px, 80cqh);
+  }
+  :root[data-theme="blush"] .hero-avatar {
+    inset: 10%;
+    width: 80%;
+    height: 80%;
+  }
+  :root[data-theme="blush"] .hero-celestial.has-avatar::before {
+    width: 37%;
+    right: -3%;
+    bottom: -2%;
+  }
+  :root[data-theme="blush"] .hero-celestial.has-avatar::after {
+    top: 2%;
+    right: 1%;
+    font-size: 16px;
+  }
+  :root[data-theme="blush"] .hero-bottom-note {
+    left: calc(var(--window-pad) + var(--hero-body-inset) + 130px);
+    right: auto;
+    bottom: 23px;
+  }
+  :root[data-theme="blush"] .checkin-card > .eyebrow {
+    margin-bottom: 8px;
+  }
+  :root[data-theme="blush"] .checkin-main {
+    margin: 6px 0 10px;
+  }
+  :root[data-theme="blush"] .checkin-main > div {
+    min-height: 54px;
+    padding-left: 66px;
+  }
+  :root[data-theme="blush"] .checkin-greeting .cat {
+    width: 54px;
+    height: 54px;
+  }
+  :root[data-theme="blush"] .stats-row > div {
+    padding: 6px 8px;
+    gap: 3px;
+  }
+  :root[data-theme="blush"] .stats-row strong {
+    font-size: 24px;
+  }
+}
+/* Fit the same nine cards in shorter desktop windows, including browser chrome. */
+@media (min-width: 1101px) and (max-height: 850px) {
+  :root[data-theme="blush"] .site-shell:not(.section-shell) {
+    --gap: 12px;
+    --window-bar-height: 36px;
+  }
+  :root[data-theme="blush"] .site-shell:not(.section-shell) .site-header {
+    height: 56px;
+    margin-bottom: 10px;
+  }
+  :root[data-theme="blush"] .card {
+    --window-pad: 12px;
+  }
+  :root[data-theme="blush"] .hero-top,
+  :root[data-theme="blush"] .card > .section-top,
+  :root[data-theme="blush"] .clock-top,
+  :root[data-theme="blush"] .calendar-top,
+  :root[data-theme="blush"] .checkin-card > .eyebrow,
+  :root[data-theme="blush"] .music-heading {
+    margin-bottom: 8px;
+  }
+  :root[data-theme="blush"] .hero-card h1 {
+    margin: 0 0 4px var(--hero-body-inset);
+    line-height: 1.1;
+  }
+  :root[data-theme="blush"] .hero-copy {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  :root[data-theme="blush"] .hero-button {
+    min-height: 28px;
+    padding: 4px 12px;
+    font-size: 11px;
+  }
+  :root[data-theme="blush"] .hero-bottom-note {
+    left: calc(var(--window-pad) + var(--hero-body-inset) + 112px);
+    bottom: 18px;
+    font-size: 8px;
+  }
+  :root[data-theme="blush"] .clock-digits {
+    font-size: clamp(60px, min(6.4vw, 10svh), 85px);
+    margin-bottom: 7px;
+  }
+  :root[data-theme="blush"] .clock-bottom {
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+  :root[data-theme="blush"] .project-title h2 {
+    font-size: 28px;
+  }
+  :root[data-theme="blush"] .project-summary {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  :root[data-theme="blush"] .home-article {
+    gap: 12px;
+  }
+  :root[data-theme="blush"] .article-footer {
+    margin-top: 6px;
+  }
+  :root[data-theme="blush"] .calendar-grid {
+    margin-top: 0;
+  }
+  :root[data-theme="blush"] .calendar-grid span {
+    height: min(24px, 100%);
+    font-size: 11px;
+  }
+  :root[data-theme="blush"] .calendar-footer {
+    margin-top: 5px;
+    padding-top: 5px;
+    min-height: 18px;
+    font-size: 10px;
+  }
+  :root[data-theme="blush"] .checkin-main {
+    margin: 2px 0 6px;
+    gap: 10px;
+  }
+  :root[data-theme="blush"] .checkin-main > div {
+    min-height: 46px;
+    padding-left: 58px;
+  }
+  :root[data-theme="blush"] .checkin-main h2 {
+    font-size: 19px;
+  }
+  :root[data-theme="blush"] .checkin-greeting {
+    margin-top: 4px;
+  }
+  :root[data-theme="blush"] .checkin-greeting .cat {
+    width: 46px;
+    height: 46px;
+    padding: 4px;
+    border-radius: 13px;
+  }
+  :root[data-theme="blush"] .checkin-greeting > span {
+    font-size: 10px;
+  }
+  :root[data-theme="blush"] .checkin-main .button {
+    min-height: 34px;
+    min-width: 94px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+  :root[data-theme="blush"] .stats-row > div {
+    padding: 4px 8px;
+    gap: 2px;
+  }
+  :root[data-theme="blush"] .stats-row strong {
+    font-size: 22px;
+  }
+  :root[data-theme="blush"] .stats-row span {
+    font-size: 10px;
+  }
+  :root[data-theme="blush"] .music-player {
+    margin: 4px 0 6px;
+    gap: 12px;
+  }
+  :root[data-theme="blush"] .album-cover {
+    width: 58px;
+    height: 58px;
+  }
+  :root[data-theme="blush"] .music-info > strong {
+    font-size: 12px;
+  }
+  :root[data-theme="blush"] .music-info > small {
+    font-size: 10px;
+    margin-top: 3px;
+  }
+  :root[data-theme="blush"] .progress {
+    margin-top: 7px;
+  }
+  :root[data-theme="blush"] .social-row {
+    padding-top: 6px;
+  }
+  :root[data-theme="blush"] .site-shell:not(.section-shell) > .site-footer {
+    height: 25px;
+    margin-top: 8px;
+  }
+}
+@media (min-width: 1400px) {
+  :root[data-theme="blush"] .hero-celestial.has-avatar {
+    right: 14%;
+  }
+}
+@media (min-width: 1400px) and (max-height: 850px) {
+  :root[data-theme="blush"] .hero-card h1 {
+    font-size: clamp(32px, min(3.8vw, 22cqh), 64px);
+  }
+  :root[data-theme="blush"] .hero-copy {
+    font-size: 13px;
+  }
+}
+@media (max-width: 1100px) {
+  :root[data-theme="blush"] .site-header nav {
+    gap: 8px;
+  }
+  :root[data-theme="blush"] .hero-card h1 {
+    font-size: 48px;
+  }
+  :root[data-theme="blush"] .clock-digits {
+    font-size: clamp(64px, 9vw, 96px);
+  }
+  :root[data-theme="blush"] .checkin-card {
+    height: auto;
+    min-height: 255px;
+  }
+  :root[data-theme="blush"] .checkin-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  :root[data-theme="blush"] .checkin-main > div {
+    flex: none;
+    min-height: 54px;
+    padding-left: 64px;
+  }
+  :root[data-theme="blush"] .checkin-main h2 {
+    font-size: 19px;
+  }
+  :root[data-theme="blush"] .checkin-greeting .cat {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    padding: 5px;
+  }
+  :root[data-theme="blush"] .checkin-greeting > span {
+    font-size: 11px;
+  }
+  :root[data-theme="blush"] .checkin-main .button {
+    align-self: stretch;
+    justify-content: center;
+    min-height: 36px;
+    padding: 7px 12px;
+  }
+  :root[data-theme="blush"] .stats-row {
+    gap: 7px;
+  }
+  :root[data-theme="blush"] .stats-row > div {
+    padding: 8px;
+  }
+  :root[data-theme="blush"] .stats-row strong {
+    font-size: 23px;
+  }
+  :root[data-theme="blush"] .stats-row span {
+    font-size: 10px;
+  }
+}
+@media (max-width: 620px) {
+  :root[data-theme="blush"] .card {
+    --window-pad: 16px;
+    border-radius: 9px;
+  }
+  :root[data-theme="blush"] .site-header {
+    margin-bottom: 8px;
+  }
+  :root[data-theme="blush"] .site-header nav {
+    gap: 2px;
+    padding: 0;
+  }
+  :root[data-theme="blush"] .site-header nav a {
+    padding: 6px 4px;
+    font-size: 13px;
+    flex: 1;
+    white-space: nowrap;
+    text-align: center;
+  }
+  :root[data-theme="blush"] .hero-card h1 {
+    font-size: clamp(34px, 10.8vw, 42px);
+    max-width: 100%;
+  }
+  :root[data-theme="blush"] .hero-copy {
+    font-size: 12px;
+    max-width: 100%;
+  }
+  :root[data-theme="blush"] .hero-celestial.has-avatar {
+    top: auto;
+    bottom: 38px;
+    right: 23px;
+    width: 110px;
+  }
+  :root[data-theme="blush"] .clock-card {
+    padding-bottom: 18px;
+  }
+  :root[data-theme="blush"] .clock-digits {
+    font-size: clamp(64px, 21vw, 92px);
+  }
+  :root[data-theme="blush"] .hero-bottom-note {
+    font-size: 10px;
+    right: 16px;
+  }
+  :root[data-theme="blush"] .dialog {
+    border-radius: 10px;
+  }
+  :root[data-theme="blush"] .checkin-main h2 {
+    font-size: 19px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="blush"] .button:active,
+  :root[data-theme="blush"] .play-button:active {
+    translate: none;
+  }
+}

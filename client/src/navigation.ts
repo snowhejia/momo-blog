@@ -5,6 +5,7 @@ export const sectionNames = {
   articles: "文字",
   photos: "相册",
   collections: "收集",
+  friends: "友链",
 } as const;
 export type Section = keyof typeof sectionNames;
 export type Page = "home" | Section;

@@ -196,7 +196,10 @@ export function ContactDialog({ onClose }: { onClose: () => void }) {
           </button>
         </form>
       )}
-      {(social.github || social.xiaohongshu || social.email) && (
+      {(social.github ||
+        social.xiaohongshu ||
+        social.bilibili ||
+        social.email) && (
         <div className="contact-socials">
           <span>也可以在这里找到我</span>
           <div>
@@ -209,6 +212,12 @@ export function ContactDialog({ onClose }: { onClose: () => void }) {
             {social.xiaohongshu && (
               <a href={social.xiaohongshu} target="_blank" rel="noreferrer">
                 小红书
+                <ArrowUpRight size={13} />
+              </a>
+            )}
+            {social.bilibili && (
+              <a href={social.bilibili} target="_blank" rel="noreferrer">
+                Bilibili
                 <ArrowUpRight size={13} />
               </a>
             )}
@@ -232,6 +241,7 @@ export function InboxDialog({
   onClose: () => void;
   onLogin: () => void;
 }) {
+  const { content } = useSite();
   const [page, setPage] = useState(1);
   const [data, setData] = useState<MessageInbox | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,7 +358,7 @@ export function InboxDialog({
               </h3>
               <time dateTime={message.createdAt}>
                 {new Intl.DateTimeFormat("zh-CN", {
-                  timeZone: "Australia/Sydney",
+                  timeZone: content!.location.timeZone,
                   dateStyle: "medium",
                   timeStyle: "short",
                 }).format(new Date(message.createdAt))}

@@ -14,6 +14,7 @@ import {
   type VisitorState,
   type Stats,
   type AuthStatus,
+  type SiteTheme,
 } from "../../shared/model";
 interface SiteStore {
   home: HomeResponse | null;
@@ -30,6 +31,7 @@ interface SiteStore {
   refresh: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   beginEdit: () => void;
+  setTheme: (theme: SiteTheme) => void;
   cancelEdit: () => Promise<void>;
   change: (fn: (content: HomeContent) => HomeContent) => void;
   save: () => Promise<void>;
@@ -172,9 +174,17 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         refreshAuth,
         beginEdit: () => {
           if (home && auth?.authenticated) {
-            setDraft(structuredClone(home.content));
+            setDraft((current) => current || structuredClone(home.content));
             setSaveError("");
           }
+        },
+        setTheme: (theme) => {
+          if (!home || !auth?.authenticated || saving) return;
+          setDraft((current) => ({
+            ...(current || structuredClone(home.content)),
+            theme,
+          }));
+          setSaveError("");
         },
         cancelEdit,
         change: (fn) => setDraft((c) => (c ? fn(c) : c)),

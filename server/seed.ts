@@ -2,7 +2,12 @@ import type { DatabaseSync } from "node:sqlite";
 import { join } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { importAudio, importImage } from "./media.js";
-import { contentSchema, type HomeContent } from "../shared/model.js";
+import {
+  contentSchema,
+  DEFAULT_ABOUT_BODY,
+  DEFAULT_LOCATION,
+  type HomeContent,
+} from "../shared/model.js";
 export async function seed(
   db: DatabaseSync,
   uploads: string,
@@ -35,22 +40,23 @@ export async function seed(
     ? await importImage(db, uploads, avatarFile)
     : null;
   const c: HomeContent = {
+    theme: "fresh",
+    location: { ...DEFAULT_LOCATION },
     profile: {
       name: "Momo",
       avatarId,
       headline: "把好奇心，\n变成作品。",
       introduction: "我是 Momo，喜欢设计、代码和日常里的小发现。",
       description: "这里是我的作品、文字与日常收藏。",
+      aboutBody: DEFAULT_ABOUT_BODY,
       eyebrow: "DESIGN · CODE · EVERYDAY",
       motto: "Made with curiosity.",
-      photoId: "sydney",
-      photoCaption: "走走，停停。",
-      demo: true,
     },
     social: {
       github: "",
       email: "",
       xiaohongshu: "",
+      bilibili: "",
     },
     projects: [
       {
@@ -147,6 +153,7 @@ export async function seed(
         demo: true,
       },
     ],
+    friends: [],
     tracks: [
       {
         id: "slow-morning",

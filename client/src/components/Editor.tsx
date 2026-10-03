@@ -10,22 +10,92 @@ import {
 import { useSite } from "../store";
 import { Dialog, SafeImage } from "./Common";
 import { MusicCover } from "./MusicCover";
+import { LocationEditor } from "./LocationEditor";
 import { request } from "../api";
 import {
-  mediaUrl,
-  sydneyDay,
-  type HomeContent,
-  type Media,
-} from "../../../shared/model";
+  articleDateFromLocal,
+  articleDateParts,
+  articleDateSchema,
+  articleExcerpt,
+} from "../../../shared/articles";
+import { mediaUrl, type HomeContent, type Media } from "../../../shared/model";
 export type EditorSection =
-  "profile" | "projects" | "articles" | "photos" | "collections" | "tracks";
+  | "location"
+  | "profile"
+  | "projects"
+  | "articles"
+  | "photos"
+  | "collections"
+  | "friends"
+  | "tracks";
 type Entry = Record<string, string | boolean | null>;
-const names: Record<EditorSection, string> = {
+type ContentSection = Exclude<EditorSection, "location">;
+function ArticleDateEditor({
+  value,
+  timeZone,
+  onChange,
+}: {
+  value: string;
+  timeZone: string;
+  onChange: (value: string) => void;
+}) {
+  const { day, time } = articleDateParts(value, timeZone);
+  const valid = articleDateSchema.safeParse(value).success;
+  const updateDate = (nextDay: string, nextTime: string) => {
+    if (!nextTime) return onChange(nextDay);
+    const local = `${nextDay}T${nextTime}`;
+    // Keep incomplete or skipped local times in the draft so validation blocks
+    // saving them instead of silently retaining a different publication time.
+    onChange(articleDateFromLocal(local, timeZone, value) || local);
+  };
+  return (
+    <fieldset className="article-date-fields">
+      <legend>发布时间</legend>
+      <div>
+        <label>
+          日期
+          <input
+            type="date"
+            value={day}
+            onChange={(e) => updateDate(e.target.value, time)}
+            aria-invalid={!valid}
+          />
+        </label>
+        <label>
+          时间（可选）
+          <input
+            type="time"
+            step="1"
+            value={time}
+            onChange={(e) => updateDate(day, e.target.value)}
+            aria-invalid={!valid}
+          />
+        </label>
+      </div>
+      <div className="article-date-note">
+        <small>时区：{timeZone}。时间留空时只显示日期。</small>
+        <button
+          className="text-button"
+          onClick={() => onChange(new Date().toISOString())}
+        >
+          使用当前时间
+        </button>
+      </div>
+      {!valid && (
+        <p className="form-error" role="alert">
+          请填写有效日期和时间；夏令时跳过的时段不可用。
+        </p>
+      )}
+    </fieldset>
+  );
+}
+const names: Record<ContentSection, string> = {
   profile: "个人资料与联系",
   projects: "项目",
   articles: "文章",
   photos: "相册与首页照片",
   collections: "收集",
+  friends: "友链",
   tracks: "音乐",
 };
 export function Editor({
@@ -33,6 +103,19 @@ export function Editor({
   onClose,
 }: {
   section: EditorSection;
+  onClose: () => void;
+}) {
+  return section === "location" ? (
+    <LocationEditor onClose={onClose} />
+  ) : (
+    <ContentEditor section={section} onClose={onClose} />
+  );
+}
+function ContentEditor({
+  section,
+  onClose,
+}: {
+  section: ContentSection;
   onClose: () => void;
 }) {
   const { content, change } = useSite();
@@ -48,7 +131,7 @@ export function Editor({
   const update = (key: string, value: string | boolean | null) => {
     change((c) =>
       section === "profile"
-        ? ["github", "email", "xiaohongshu"].includes(key)
+        ? ["github", "email", "xiaohongshu", "bilibili"].includes(key)
           ? { ...c, social: { ...c.social, [key]: value } }
           : { ...c, profile: { ...c.profile, [key]: value } }
         : ({
@@ -75,10 +158,9 @@ export function Editor({
     if (section === "articles")
       item = {
         ...base,
-        title: "新的文字",
         summary: "",
         body: "",
-        date: sydneyDay(new Date()),
+        date: new Date().toISOString(),
         coverId: null,
         url: "",
       };
@@ -103,6 +185,14 @@ export function Editor({
         source: "",
         demo: false,
       };
+    if (section === "friends")
+      item = {
+        ...base,
+        title: "新的朋友",
+        description: "",
+        url: "",
+        avatarId: null,
+      };
     if (section === "tracks")
       item = {
         ...base,
@@ -121,7 +211,14 @@ export function Editor({
     }
   };
   const remove = () => {
-    if (!window.confirm("从首页移除这条内容？保存修改后生效。")) return;
+    if (
+      !window.confirm(
+        section === "friends"
+          ? "移除这条友链？保存修改后生效。"
+          : "从首页移除这条内容？保存修改后生效。",
+      )
+    )
+      return;
     if (section === "profile") return;
     const next = list.filter((i) => i.id !== selected);
     change((c) => ({ ...c, [section]: next }) as HomeContent);
@@ -175,6 +272,7 @@ export function Editor({
     label: string,
     multiline = false,
     type = "text",
+    placeholder = "",
   ) => (
     <label key={key}>
       {label}
@@ -182,11 +280,13 @@ export function Editor({
         <textarea
           value={String(entry?.[key] || "")}
           rows={key === "body" ? 10 : 3}
+          placeholder={placeholder}
           onChange={(e) => update(key, e.target.value)}
         />
       ) : (
         <input
           type={type}
+          placeholder={placeholder}
           value={String(entry?.[key] || "")}
           onChange={(e) => update(key, e.target.value)}
         />
@@ -250,7 +350,8 @@ export function Editor({
   return (
     <Dialog
       title={`编辑${names[section]}`}
-      eyebrow="修改会暂存于页面，点击顶部「保存修改」后发布"
+      eyebrow="修改会暂存于页面，点击底部「保存修改」后发布"
+      busy={uploading}
       wide
       onClose={() => {
         if (!uploading) onClose();
@@ -270,7 +371,12 @@ export function Editor({
                 className={selected === i.id ? "selected" : ""}
               >
                 <small>{String(index + 1).padStart(2, "0")}</small>
-                <span>{i.title || "未命名"}</span>
+                <span>
+                  {i.title.trim() ||
+                    ("body" in i
+                      ? articleExcerpt(i).slice(0, 36) || "新的文字"
+                      : "未命名")}
+                </span>
               </button>
             ))}
             <button className="add-entry" onClick={add} disabled={uploading}>
@@ -316,42 +422,27 @@ export function Editor({
                   {field("headline", "首页标题", true)}
                   {field("introduction", "个人介绍", true)}
                   {field("description", "首页描述", true)}
+                  {field("aboutBody", "认识我正文", true)}
                   {field("eyebrow", "顶部标签")}
                   {field("motto", "页脚寄语")}
                   {field("github", "GitHub 链接")}
                   {field("email", "联系邮箱", false, "email")}
                   {field("xiaohongshu", "小红书主页链接")}
-                  {field("photoCaption", "首页照片标题")}
-                  <label>
-                    首页展示照片
-                    <select
-                      aria-label="首页展示照片"
-                      value={String(entry.photoId || "")}
-                      onChange={(e) => update("photoId", e.target.value)}
-                    >
-                      <option value="">使用相册第一张</option>
-                      {content!.photos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.title}
-                        </option>
-                      ))}
-                    </select>
-                    <small>
-                      访客每次打开首页时随机展示相册中的一张；编辑时固定预览所选照片。
-                    </small>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={!!entry.demo}
-                      onChange={(e) => update("demo", e.target.checked)}
-                    />
-                    页面包含示例内容（在素材说明中标明）
-                  </label>
+                  {field("bilibili", "Bilibili 主页链接")}
                 </>
               ) : (
                 <>
-                  {field("title", "标题")}
+                  {field(
+                    "title",
+                    section === "friends"
+                      ? "网站名称"
+                      : section === "articles"
+                        ? "标题（可选）"
+                        : "标题",
+                    false,
+                    "text",
+                    section === "articles" ? "留空即可直接展示文字" : "",
+                  )}
                   {section === "projects" && (
                     <>
                       {field("summary", "简介", true)}
@@ -363,11 +454,24 @@ export function Editor({
                   )}
                   {section === "articles" && (
                     <>
-                      {field("summary", "摘要", true)}
-                      {field("date", "日期", false, "date")}
+                      {field(
+                        "summary",
+                        "摘要（可选）",
+                        true,
+                        "text",
+                        "留空时，列表自动显示正文开头",
+                      )}
+                      <ArticleDateEditor
+                        value={String(entry.date)}
+                        timeZone={content!.location.timeZone}
+                        onChange={(value) => update("date", value)}
+                      />
                       {field("body", "正文", true)}
                       {field("url", "外部文章链接（可选）")}
-                      {asset("coverId", "文章封面")}
+                      {asset("coverId", "文章封面（可选）")}
+                      <small>
+                        不上传封面即使用纯文字布局；已有封面可以直接移除。
+                      </small>
                     </>
                   )}
                   {section === "photos" && (
@@ -396,6 +500,16 @@ export function Editor({
                       {asset("imageId", "灵感图片")}
                     </>
                   )}
+                  {section === "friends" && (
+                    <>
+                      {field("description", "一句话介绍", true)}
+                      {field("url", "网站链接", false, "url")}
+                      {asset("avatarId", "友链头像")}
+                      <small>
+                        链接需以 https:// 或 http:// 开头；头像可留空。
+                      </small>
+                    </>
+                  )}
                   {section === "tracks" && (
                     <>
                       {field("artist", "艺术家")}
@@ -406,19 +520,8 @@ export function Editor({
                       </small>
                     </>
                   )}
-                  {["photos", "collections", "tracks"].includes(section) && (
-                    <>
-                      {field("source", "素材来源（可选）")}
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={!!entry.demo}
-                          onChange={(e) => update("demo", e.target.checked)}
-                        />
-                        这是演示素材
-                      </label>
-                    </>
-                  )}
+                  {["photos", "collections", "tracks"].includes(section) &&
+                    field("source", "素材来源（可选）")}
                 </>
               )}
               {uploadError && (
@@ -432,7 +535,7 @@ export function Editor({
                   disabled={uploading}
                   onClick={onClose}
                 >
-                  返回首页预览
+                  {section === "friends" ? "返回友链预览" : "返回首页预览"}
                 </button>
               </div>
             </>

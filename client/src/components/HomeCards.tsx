@@ -16,8 +16,15 @@ import {
   Check,
 } from "lucide-react";
 import { useSite } from "../store";
-import { mediaUrl, sydneyDay, type Weather } from "../../../shared/model";
+import {
+  mediaUrl,
+  zonedDay,
+  weatherLocationKey,
+  type Weather,
+} from "../../../shared/model";
 import { request } from "../api";
+import { articleExcerpt } from "../../../shared/articles";
+import { ArticleTime } from "./ArticleTime";
 import {
   Cat,
   Editable,
@@ -32,6 +39,7 @@ export type Panel =
   | "articles"
   | "photos"
   | "collections"
+  | "friends"
   | "about"
   | "contact"
   | "sources";
@@ -95,7 +103,7 @@ export function Hero({ open, edit }: CardActions) {
   );
 }
 export function PhotoCard({ open, edit }: CardActions) {
-  const { content, editing } = useSite();
+  const { content } = useSite();
   const photos = content!.photos;
   const [randomPhotoId, setRandomPhotoId] = useState(
     () => photos[Math.floor(Math.random() * photos.length)]?.id || "",
@@ -106,15 +114,7 @@ export function PhotoCard({ open, edit }: CardActions) {
         photos[Math.floor(Math.random() * photos.length)]?.id || "",
       );
   }, [photos, randomPhotoId]);
-  const preferredPhoto =
-    photos.find((p) => p.id === content!.profile.photoId) || photos[0];
-  const photo = editing
-    ? preferredPhoto
-    : photos.find((p) => p.id === randomPhotoId) || photos[0];
-  const caption =
-    photo?.id === content!.profile.photoId
-      ? content!.profile.photoCaption || photo?.title
-      : photo?.title;
+  const photo = photos.find((p) => p.id === randomPhotoId) || photos[0];
   return (
     <section className="card photo-card">
       <button
@@ -133,7 +133,7 @@ export function PhotoCard({ open, edit }: CardActions) {
       </div>
       <div className="photo-caption">
         <div>
-          <h2>{caption || "下一张喜欢的照片"}</h2>
+          <h2>{photo?.title || "下一张喜欢的照片"}</h2>
           <span>{photo?.location || "A LITTLE MOMENT"}</span>
         </div>
         <button
@@ -154,17 +154,39 @@ export function useClock() {
   }, []);
   return now;
 }
-export function ClockCard({ now }: { now: Date }) {
-  const [weather, setWeather] = useState<Weather | null>(null);
+export function ClockCard({
+  now,
+  edit,
+}: {
+  now: Date;
+  edit: CardActions["edit"];
+}) {
+  const { content, home } = useSite();
+  const { name, latitude, longitude, timeZone } = content!.location;
+  const key = weatherLocationKey(content!.location);
+  const preview = key !== weatherLocationKey(home!.content.location);
+  const [weatherResult, setWeather] = useState<{
+    key: string;
+    value: Weather;
+  } | null>(null);
+  const weather = weatherResult?.key === key ? weatherResult.value : null;
   useEffect(() => {
     let active = true;
     const load = () =>
-      request<Weather>("/api/weather")
+      request<Weather>(
+        preview ? "/api/weather/preview" : "/api/weather",
+        preview
+          ? {
+              method: "POST",
+              body: JSON.stringify({ latitude, longitude, timeZone }),
+            }
+          : {},
+      )
         .then((w) => {
-          if (active) setWeather(w);
+          if (active) setWeather({ key, value: w });
         })
         .catch(() => {
-          if (active) setWeather({ available: false });
+          if (active) setWeather({ key, value: { available: false } });
         });
     void load();
     const timer = setInterval(() => void load(), 15 * 60000);
@@ -172,9 +194,9 @@ export function ClockCard({ now }: { now: Date }) {
       active = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [key, preview]);
   const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
@@ -182,17 +204,17 @@ export function ClockCard({ now }: { now: Date }) {
     .format(now)
     .split(":");
   const weekday = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     weekday: "short",
   }).format(now);
   const zone = new Intl.DateTimeFormat("en-AU", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     timeZoneName: "short",
   })
     .formatToParts(now)
     .find((p) => p.type === "timeZoneName")?.value;
   const offset = new Intl.DateTimeFormat("en-AU", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     timeZoneName: "shortOffset",
   })
     .formatToParts(now)
@@ -211,14 +233,16 @@ export function ClockCard({ now }: { now: Date }) {
             ? "雪"
             : "雨";
   return (
-    <section className="card clock-card" aria-label="悉尼当地时间">
+    <section className="card clock-card" aria-label={`${name}当地时间`}>
       <div className="clock-top">
-        <span className="eyebrow">LOCAL TIME / SYDNEY</span>
+        <span className="eyebrow" title={`LOCAL TIME / ${name.toUpperCase()}`}>
+          LOCAL TIME / {name.toUpperCase()}
+        </span>
         <span
           className="weather"
           title={
             weather?.updatedAt
-              ? `天气更新于 ${new Date(weather.updatedAt).toLocaleTimeString("zh-CN")}`
+              ? `天气更新于 ${new Date(weather.updatedAt).toLocaleTimeString("zh-CN", { timeZone })}`
               : undefined
           }
         >
@@ -239,13 +263,18 @@ export function ClockCard({ now }: { now: Date }) {
         {parts[1]}
       </div>
       <div className="clock-date">
-        {sydneyDay(now).replaceAll("-", ".")}
+        {zonedDay(now, timeZone).replaceAll("-", ".")}
         <span>·</span>
         {weekday}
       </div>
       <div className="clock-bottom">
         <i />
-        {zone} · {offset}
+        <span title={timeZone}>
+          {zone?.replace("GMT", "UTC") === offset
+            ? offset
+            : `${zone} · ${offset}`}
+        </span>
+        <EditButton label="编辑地点与时区" onClick={() => edit("location")} />
       </div>
     </section>
   );
@@ -320,7 +349,9 @@ export function ProjectCard({ open, edit }: CardActions) {
                   <div className="demo-notes">
                     {content?.articles.slice(1, 3).map((a, i) => (
                       <div key={a.id}>
-                        <SafeImage src={mediaUrl(a.coverId, true)} alt="" />
+                        {a.coverId && (
+                          <SafeImage src={mediaUrl(a.coverId, true)} alt="" />
+                        )}
                         <span>
                           <strong>
                             {i === 0 ? "生活中的小确幸" : "关于专注"}
@@ -361,19 +392,19 @@ export function ArticleCard({ open, edit }: CardActions) {
         </div>
       </div>
       <div className="home-articles">
-        {content?.articles.slice(0, 3).map((a, i) => (
+        {content?.articles.slice(0, 3).map((a) => (
           <button
-            className="home-article"
+            className={`home-article${a.coverId ? "" : " text-only"}${a.title.trim() ? "" : " untitled"}`}
             key={a.id}
             onClick={() => open("articles", a.id)}
           >
-            <SafeImage src={mediaUrl(a.coverId, true)} alt="" />
+            {a.coverId && <SafeImage src={mediaUrl(a.coverId, true)} alt="" />}
             <span>
-              <strong>{a.title}</strong>
-              <small>
-                {["创造手记", "数字生活", "生活碎片"][i]} ·{" "}
-                {a.date.slice(5).replace("-", ".")}
-              </small>
+              {a.title.trim() && <strong>{a.title}</strong>}
+              {articleExcerpt(a) && (
+                <span className="article-excerpt">{articleExcerpt(a)}</span>
+              )}
+              <ArticleTime date={a.date} timeZone={content.location.timeZone} />
             </span>
           </button>
         ))}
@@ -402,15 +433,21 @@ const monthNames = [
   "十二月",
 ];
 export function CalendarCard({ now }: { now: Date }) {
-  const [year, month, today] = sydneyDay(now).split("-").map(Number);
+  const { content } = useSite();
+  const timeZone = content!.location.timeZone;
+  const [year, month, today] = zonedDay(now, timeZone).split("-").map(Number);
   const [offset, setOffset] = useState(0);
-  const cursor = new Date(year, month - 1 + offset, 1),
-    y = cursor.getFullYear(),
-    m = cursor.getMonth(),
-    blanks = (cursor.getDay() + 6) % 7;
+  useEffect(() => setOffset(0), [timeZone]);
+  const cursor = new Date(Date.UTC(year, month - 1 + offset, 1)),
+    y = cursor.getUTCFullYear(),
+    m = cursor.getUTCMonth(),
+    blanks = (cursor.getUTCDay() + 6) % 7;
   const days = [
     ...Array(blanks).fill(null),
-    ...Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => i + 1),
+    ...Array.from(
+      { length: new Date(Date.UTC(y, m + 1, 0)).getUTCDate() },
+      (_, i) => i + 1,
+    ),
   ];
   return (
     <section className="card calendar-card">
@@ -419,7 +456,7 @@ export function CalendarCard({ now }: { now: Date }) {
           <h2>{monthNames[m]}</h2>
           <span className="eyebrow">
             {cursor
-              .toLocaleDateString("en-US", { month: "long" })
+              .toLocaleDateString("en-US", { month: "long", timeZone: "UTC" })
               .toUpperCase()}
           </span>
         </div>
@@ -459,7 +496,9 @@ export function CalendarCard({ now }: { now: Date }) {
 const compact = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(1).replace(".0", "")}k` : String(n);
 export function CheckinCard() {
-  const { stats, checkin, notify } = useSite();
+  const { stats, checkin, notify, home, content } = useSite();
+  const timeZoneChanged =
+    home?.content.location.timeZone !== content?.location.timeZone;
   const [pending, setPending] = useState(false);
   return (
     <section className="card checkin-card">
@@ -478,7 +517,7 @@ export function CheckinCard() {
         </div>
         <button
           className="button lime"
-          disabled={pending || !stats || stats.checkedIn}
+          disabled={pending || !stats || stats.checkedIn || timeZoneChanged}
           onClick={async () => {
             setPending(true);
             try {
@@ -490,7 +529,13 @@ export function CheckinCard() {
             }
           }}
         >
-          {pending ? "签到中…" : stats?.checkedIn ? "今日已签到" : "今日签到"}
+          {timeZoneChanged
+            ? "保存后签到"
+            : pending
+              ? "签到中…"
+              : stats?.checkedIn
+                ? "今日已签到"
+                : "今日签到"}
           {stats?.checkedIn ? <Check size={15} /> : <ArrowUpRight size={15} />}
         </button>
       </div>

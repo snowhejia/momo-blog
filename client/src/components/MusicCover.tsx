@@ -32,11 +32,11 @@ export function MusicCover({
       role="img"
       aria-label={`${alt}（默认唱片封面）`}
     >
-      <rect width="200" height="200" fill="#eeeee5" />
+      <rect width="200" height="200" fill="var(--theme-image-bg, #eeeee5)" />
       <path
         d="M16 30V16h14M170 184h14v-14"
         fill="none"
-        stroke="#bcc2ad"
+        stroke="var(--theme-line, #bcc2ad)"
         strokeWidth="2"
       />
       <circle cx="100" cy="100" r="75" fill="#20221e" />

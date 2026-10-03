@@ -1,7 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { HomeContent, HomeResponse } from "../shared/model.js";
+import {
+  DEFAULT_ABOUT_BODY,
+  DEFAULT_LOCATION,
+  type HomeContent,
+  type HomeResponse,
+} from "../shared/model.js";
 export function openDatabase(path: string) {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path, { timeout: 5000 });
@@ -28,7 +33,12 @@ export function readHome(db: DatabaseSync): HomeResponse {
     .get();
   if (!row) throw new Error("首页尚未初始化");
   const content = JSON.parse(String(row.data)) as HomeContent;
+  content.theme ??= "fresh";
   content.profile.avatarId ??= null;
+  content.profile.aboutBody ??= DEFAULT_ABOUT_BODY;
   content.social.xiaohongshu ??= "";
+  content.social.bilibili ??= "";
+  content.friends ??= [];
+  content.location ??= { ...DEFAULT_LOCATION };
   return { revision: Number(row.revision), content };
 }

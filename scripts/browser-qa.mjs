@@ -108,7 +108,7 @@ try {
     });
     assert.ok(
       socialFits,
-      "all three social links and the like count fit in the music card",
+      "all social links and the like count fit in the music card",
     );
     assert.equal(size.w, width, "no horizontal overflow");
     if (width > 1100) {
@@ -480,13 +480,21 @@ try {
       () => document.querySelector("audio").currentTime >= 9.9,
     ),
   );
-  await page.getByLabel("音乐设置").click();
+  await page.getByLabel("调整音量").click();
   await page.getByLabel("音量", { exact: true }).fill("0.2");
   assert.equal(
     await page.evaluate(() => document.querySelector("audio").volume),
     0.2,
   );
-  await page.getByLabel("音乐设置").click();
+  await page.getByLabel("调整音量").click();
+  await page.getByRole("button", { name: "打开音乐列表", exact: true }).click();
+  await page.getByRole("dialog", { name: "音乐列表", exact: true }).waitFor();
+  assert.equal(await page.locator("audio").count(), 1);
+  assert.equal(
+    await page.evaluate(() => document.querySelector("audio").paused),
+    false,
+  );
+  await page.getByRole("button", { name: "关闭面板", exact: true }).click();
   const audioHandle = await page.locator("audio").elementHandle();
   for (const name of ["项目", "文字", "相册", "收集", "首页"]) {
     await navigate(name);

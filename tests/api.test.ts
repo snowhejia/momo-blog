@@ -21,7 +21,14 @@ import { openDatabase, readHome } from "../server/db";
 import { createSiteAuth } from "../server/auth";
 import { createApp } from "../server/app";
 import { seed } from "../server/seed";
-import { sydneyDay, type HomeResponse } from "../shared/model";
+import {
+  zonedDay,
+  contentSchema,
+  DEFAULT_ABOUT_BODY,
+  DEFAULT_LOCATION,
+  type HomeResponse,
+  type WeatherLocation,
+} from "../shared/model";
 const exec = promisify(execFile);
 const secret = "test-only-secret-which-is-at-least-32-characters";
 const token = "isolated-integration-test-setup-token";
@@ -36,6 +43,14 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
   await writeFile(join(staticDir, "assets", "app-abc123.js"), "export {};");
   let db = openDatabase(dbPath);
   let instant = new Date("2026-10-03T13:59:59Z");
+  const weatherRequests: WeatherLocation[] = [];
+  const shanghai = {
+    name: "上海",
+    region: "CN",
+    timeZone: "Asia/Shanghai",
+    latitude: 31.2222,
+    longitude: 121.4581,
+  };
   const authOptions = {
     secret,
     setupToken: token,
@@ -51,7 +66,14 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       trustProxy: 1,
       staticDir,
       now: () => instant,
-      weather: async () => ({ available: false }),
+      weather: async (location) => {
+        weatherRequests.push(location);
+        return { available: false };
+      },
+      locations: async (query) => {
+        assert.equal(query, "上海");
+        return [{ ...shanghai, country: "中国", area: "上海市" }];
+      },
     });
   await seed(db, uploads, resolve("assets/demo"));
   let app = await makeApp();
@@ -66,10 +88,12 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         home = (await guest.get("/api/home").expect(200)).body;
         assert.equal(home.revision, 1);
         assert.equal(home.content.profile.name, "Momo");
+        assert.equal(home.content.theme, "fresh");
         assert.deepEqual(home.content.social, {
           github: "",
           email: "",
           xiaohongshu: "",
+          bilibili: "",
         });
         assert.equal(home.content.projects[0].id, "sample-project");
         assert.ok(home.content.profile.avatarId);
@@ -81,7 +105,23 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           homeResponse.headers["cache-control"],
           "public, max-age=0, must-revalidate",
         );
-        assert.equal(homeResponse.headers.etag, '"home-1"');
+        assert.equal(homeResponse.headers.etag, '"home-v5-1"');
+        await guest
+          .get("/api/home")
+          .set("If-None-Match", '"home-1"')
+          .expect(200);
+        await guest
+          .get("/api/home")
+          .set("If-None-Match", '"home-v2-1"')
+          .expect(200);
+        await guest
+          .get("/api/home")
+          .set("If-None-Match", '"home-v3-1"')
+          .expect(200);
+        await guest
+          .get("/api/home")
+          .set("If-None-Match", '"home-v4-1"')
+          .expect(200);
         await guest
           .get("/api/home")
           .set("If-None-Match", homeResponse.headers.etag)
@@ -89,10 +129,7 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         await guest
           .get("/assets/app-abc123.js")
           .expect(200)
-          .expect(
-            "Cache-Control",
-            "public, max-age=31536000, immutable",
-          );
+          .expect("Cache-Control", "public, max-age=31536000, immutable");
         await guest.get("/").expect(200).expect("Cache-Control", "no-cache");
         const state = await guest.get("/api/state").expect(200);
         assert.equal(state.body.auth.initialized, false);
@@ -153,13 +190,95 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       assert.equal(db.prepare("SELECT COUNT(*) n FROM user").get()!.n, 1);
     });
     await t.test(
-      "小红书链接兼容旧内容，保存后可读取并拒绝危险链接",
+      "主题兼容旧内容，仅管理员可保存且切换不改动页面内容",
+      async () => {
+        const original = db
+          .prepare("SELECT data FROM site_content WHERE id=1")
+          .get()!;
+        const legacy = JSON.parse(String(original.data));
+        delete legacy.theme;
+        db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
+          JSON.stringify(legacy),
+        );
+        assert.equal(contentSchema.parse(legacy).theme, "fresh");
+        home = (await guest.get("/api/home").expect(200)).body;
+        assert.equal(home.content.theme, "fresh");
+        await admin
+          .put("/api/home")
+          .send({ ...home, content: { ...home.content, theme: "unknown" } })
+          .expect(400);
+        await guest
+          .put("/api/home")
+          .send({ ...home, content: { ...home.content, theme: "blush" } })
+          .expect(401);
+        const { theme: originalTheme, ...originalContent } = home.content;
+        for (const theme of ["blush", "fresh", "midnight"] as const) {
+          home = (
+            await admin
+              .put("/api/home")
+              .send({ ...home, content: { ...home.content, theme } })
+              .expect(200)
+          ).body;
+          const publicHome = (await guest.get("/api/home").expect(200))
+            .body as HomeResponse;
+          assert.equal(publicHome.content.theme, theme);
+          const { theme: savedTheme, ...savedContent } = publicHome.content;
+          assert.deepEqual(savedContent, originalContent);
+        }
+      },
+    );
+    await t.test("认识我正文兼容旧内容，保留换行并允许清空", async () => {
+      const original = db
+        .prepare("SELECT data FROM site_content WHERE id=1")
+        .get()!;
+      const legacy = JSON.parse(String(original.data));
+      delete legacy.profile.aboutBody;
+      db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
+        JSON.stringify(legacy),
+      );
+      assert.equal(
+        contentSchema.parse(legacy).profile.aboutBody,
+        DEFAULT_ABOUT_BODY,
+      );
+      home = (await guest.get("/api/home").expect(200)).body;
+      assert.equal(home.content.profile.aboutBody, DEFAULT_ABOUT_BODY);
+
+      home.content.profile.aboutBody = "很长的文字".repeat(1001);
+      await admin.put("/api/home").send(home).expect(400);
+      home.content.profile.aboutBody =
+        "这是我自己的介绍。\n\n把喜欢的事慢慢记录下来。";
+      home = (await admin.put("/api/home").send(home).expect(200)).body;
+      assert.equal(
+        (await guest.get("/api/home").expect(200)).body.content.profile
+          .aboutBody,
+        "这是我自己的介绍。\n\n把喜欢的事慢慢记录下来。",
+      );
+      assert.equal(
+        JSON.parse(
+          String(
+            db.prepare("SELECT data FROM site_content WHERE id=1").get()!.data,
+          ),
+        ).profile.aboutBody,
+        home.content.profile.aboutBody,
+      );
+
+      home.content.profile.aboutBody = "";
+      home = (await admin.put("/api/home").send(home).expect(200)).body;
+      assert.equal(readHome(db).content.profile.aboutBody, "");
+      assert.equal(contentSchema.parse(home.content).profile.aboutBody, "");
+      home.content.profile.aboutBody =
+        "这是我自己的介绍。\n\n把喜欢的事慢慢记录下来。";
+      home = (await admin.put("/api/home").send(home).expect(200)).body;
+    });
+    await t.test(
+      "小红书和 Bilibili 链接兼容旧内容，保存后可读取并拒绝危险链接",
       async () => {
         const original = db
           .prepare("SELECT data FROM site_content WHERE id=1")
           .get()!;
         const legacy = JSON.parse(String(original.data));
         delete legacy.social.xiaohongshu;
+        delete legacy.social.bilibili;
         db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
           JSON.stringify(legacy),
         );
@@ -167,6 +286,11 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           (await guest.get("/api/home")).body.content.social.xiaohongshu,
           "",
         );
+        assert.equal(
+          (await guest.get("/api/home")).body.content.social.bilibili,
+          "",
+        );
+        assert.equal(contentSchema.parse(legacy).social.bilibili, "");
         db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
           String(original.data),
         );
@@ -174,6 +298,11 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         current.content.social.xiaohongshu = "javascript:alert(1)";
         await admin.put("/api/home").send(current).expect(400);
         current.content.social.xiaohongshu = "https://example.com/profile/demo";
+        for (const url of ["javascript:alert(1)", "https://", "not-a-link"]) {
+          current.content.social.bilibili = url;
+          await admin.put("/api/home").send(current).expect(400);
+        }
+        current.content.social.bilibili = "https://space.bilibili.com/123";
         await guest.put("/api/home").send(current).expect(401);
         const saved = await admin.put("/api/home").send(current).expect(200);
         home = saved.body;
@@ -181,6 +310,119 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           (await guest.get("/api/home")).body.content.social.xiaohongshu,
           current.content.social.xiaohongshu,
         );
+        assert.equal(
+          (await guest.get("/api/home")).body.content.social.bilibili,
+          current.content.social.bilibili,
+        );
+      },
+    );
+    await t.test("友链兼容旧数据、校验网址和头像、保存后公开读取", async () => {
+      const original = db
+        .prepare("SELECT data FROM site_content WHERE id=1")
+        .get()!;
+      const legacy = JSON.parse(String(original.data));
+      delete legacy.friends;
+      db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
+        JSON.stringify(legacy),
+      );
+      assert.deepEqual(
+        (await guest.get("/api/home").expect(200)).body.content.friends,
+        [],
+      );
+      // An existing site's saved payload may also predate the friends field.
+      home = (
+        await admin
+          .put("/api/home")
+          .send({ revision: home.revision, content: legacy })
+          .expect(200)
+      ).body;
+      assert.deepEqual(home.content.friends, []);
+
+      const current = structuredClone(home);
+      current.content.friends = [
+        {
+          id: "friend-test",
+          title: "朋友的小站",
+          description: "写代码，也记录日常。",
+          url: "https://example.com/friend",
+          avatarId: home.content.profile.avatarId,
+        },
+      ];
+      await guest.put("/api/home").send(current).expect(401);
+      for (const url of [
+        "",
+        "javascript:alert(1)",
+        "ftp://example.com",
+        "https://",
+      ])
+        await admin
+          .put("/api/home")
+          .send({
+            ...current,
+            content: {
+              ...current.content,
+              friends: [{ ...current.content.friends[0], url }],
+            },
+          })
+          .expect(400);
+      for (const avatarId of ["missing-avatar", home.content.tracks[0].audioId])
+        await admin
+          .put("/api/home")
+          .send({
+            ...current,
+            content: {
+              ...current.content,
+              friends: [{ ...current.content.friends[0], avatarId }],
+            },
+          })
+          .expect(400);
+      await admin
+        .put("/api/home")
+        .send({
+          ...current,
+          content: {
+            ...current.content,
+            friends: [current.content.friends[0], current.content.friends[0]],
+          },
+        })
+        .expect(400);
+      home = (await admin.put("/api/home").send(current).expect(200)).body;
+      assert.deepEqual(
+        (await guest.get("/api/home").expect(200)).body.content.friends,
+        current.content.friends,
+      );
+      await guest
+        .get(`/api/media/${home.content.friends[0].avatarId}?size=thumb`)
+        .expect(200);
+      await guest
+        .get("/friends")
+        .expect(200)
+        .expect("Cache-Control", "no-cache");
+    });
+    await t.test(
+      "无标题无封面的文字和具体发布时间可保存，旧日期继续保留",
+      async () => {
+        const note = {
+          id: "plain-note",
+          title: "",
+          summary: "",
+          body: "一段没有标题的日常。\n\n保留第二段。",
+          coverId: null,
+          url: "",
+          date: "2026-10-03T11:24:36.000Z",
+        };
+        const originalDate = home.content.articles[0].date;
+        const current = structuredClone(home);
+        current.content.articles.push(note);
+        await guest.put("/api/home").send(current).expect(401);
+        home = (await admin.put("/api/home").send(current).expect(200)).body;
+        const published = (await guest.get("/api/home").expect(200)).body;
+        assert.deepEqual(published.content.articles.at(-1), note);
+        assert.equal(published.content.articles[0].date, originalDate);
+        const invalid = structuredClone(home);
+        invalid.content.articles.at(-1)!.date = "2026-02-30T12:00:00Z";
+        await admin.put("/api/home").send(invalid).expect(400);
+        assert.deepEqual(readHome(db), home);
       },
     );
     await t.test("私人留言保存、去重、校验、频率限制及管理员管理", async () => {
@@ -323,13 +565,13 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
     await t.test(
       "悉尼日期跨午夜再次签到，同一天不重复；点赞可持久化与撤销",
       async () => {
-        assert.equal(sydneyDay(instant), "2026-10-03");
+        assert.equal(zonedDay(instant), "2026-10-03");
         const first = await guest.post("/api/checkin").expect(200);
         assert.equal(first.body.checkins, 1);
         assert.equal(first.body.checkedIn, true);
         assert.equal((await guest.post("/api/checkin")).body.checkins, 1);
         instant = new Date("2026-10-03T14:00:01Z");
-        assert.equal(sydneyDay(instant), "2026-10-04");
+        assert.equal(zonedDay(instant), "2026-10-04");
         assert.equal((await guest.get("/api/stats")).body.checkedIn, false);
         assert.equal((await guest.post("/api/checkin")).body.checkins, 2);
         let result = await guest
@@ -407,10 +649,7 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
           await guest
             .get(`/api/media/${id}?size=thumb`)
             .expect(200)
-            .expect(
-              "Cache-Control",
-              "public, max-age=31536000, immutable",
-            );
+            .expect("Cache-Control", "public, max-age=31536000, immutable");
         }
         assert.deepEqual(await readdir(join(uploads, "incoming")), []);
       },
@@ -638,7 +877,96 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       assert.equal((await guest.get("/api/home")).body.revision, home.revision);
     });
     await t.test(
-      "数据库重新打开后内容、媒体、会话、签到和点赞保留",
+      "地点兼容旧内容，城市搜索和天气预览需登录，保存后按所选时区统计",
+      async () => {
+        home = (await admin.get("/api/home")).body;
+        const legacy = JSON.parse(JSON.stringify(home));
+        delete legacy.content.location;
+        db.prepare("UPDATE site_content SET data=? WHERE id=1").run(
+          JSON.stringify(legacy.content),
+        );
+        assert.deepEqual(
+          (await guest.get("/api/home")).body.content.location,
+          DEFAULT_LOCATION,
+        );
+        home = (await admin.put("/api/home").send(legacy).expect(200)).body;
+        assert.deepEqual(home.content.location, DEFAULT_LOCATION);
+
+        await guest.get("/api/locations?q=上海").expect(401);
+        await guest.post("/api/weather/preview").send(shanghai).expect(401);
+        await admin.get("/api/locations?q=x").expect(400);
+        const results = (
+          await admin.get("/api/locations").query({ q: "上海" }).expect(200)
+        ).body;
+        assert.equal(results[0].timeZone, "Asia/Shanghai");
+        await admin.post("/api/weather/preview").send(shanghai).expect(200);
+        assert.deepEqual(weatherRequests.at(-1), {
+          latitude: shanghai.latitude,
+          longitude: shanghai.longitude,
+          timeZone: shanghai.timeZone,
+        });
+        await guest.get("/api/weather").expect(200);
+        assert.deepEqual(weatherRequests.at(-1), DEFAULT_LOCATION);
+        assert.deepEqual((await guest.get("/api/home")).body, home);
+
+        for (const invalid of [
+          { timeZone: "Not/AZone" },
+          { latitude: 91 },
+          { longitude: -181 },
+        ]) {
+          const location = { ...shanghai, ...invalid };
+          await admin
+            .put("/api/home")
+            .send({ ...home, content: { ...home.content, location } })
+            .expect(400);
+          await admin.post("/api/weather/preview").send(location).expect(400);
+        }
+        assert.deepEqual((await guest.get("/api/home")).body, home);
+        home.content.location = shanghai;
+        home = (await admin.put("/api/home").send(home).expect(200)).body;
+        assert.deepEqual(
+          (await guest.get("/api/home")).body.content.location,
+          shanghai,
+        );
+        await guest.get("/api/weather").expect(200);
+        assert.deepEqual(weatherRequests.at(-1), shanghai);
+
+        const visitor = request.agent(app);
+        instant = new Date("2026-10-03T15:59:59Z");
+        let stats = (
+          await visitor
+            .post("/api/visits")
+            .send({ pageViewId: randomUUID() })
+            .expect(200)
+        ).body;
+        assert.equal(stats.todayVisitors, 4);
+        assert.equal(
+          (await visitor.post("/api/checkin").expect(200)).body.checkins,
+          1,
+        );
+        assert.equal(
+          (await visitor.post("/api/checkin").expect(200)).body.checkins,
+          1,
+        );
+        instant = new Date("2026-10-03T16:00:01Z");
+        stats = (await visitor.get("/api/stats").expect(200)).body;
+        assert.equal(stats.checkedIn, false);
+        assert.equal(stats.todayVisitors, 0);
+        assert.equal(
+          (await visitor.post("/api/checkin").expect(200)).body.checkins,
+          2,
+        );
+        stats = (
+          await visitor
+            .post("/api/visits")
+            .send({ pageViewId: randomUUID() })
+            .expect(200)
+        ).body;
+        assert.equal(stats.todayVisitors, 1);
+      },
+    );
+    await t.test(
+      "数据库重新打开后内容、地点、媒体、会话、签到和点赞保留",
       async () => {
         const count = Number(
             db.prepare("SELECT COUNT(*) n FROM checkins").get()!.n,
@@ -657,7 +985,21 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         await seed(db, uploads, resolve("assets/demo"));
         app = await makeApp();
         assert.equal(readHome(db).revision, rev);
+        assert.equal(readHome(db).content.theme, "midnight");
         assert.equal(readHome(db).content.profile.headline, "经过验证的首页");
+        assert.equal(readHome(db).content.friends[0].title, "朋友的小站");
+        assert.deepEqual(readHome(db).content.location, shanghai);
+        assert.equal(
+          readHome(db).content.social.bilibili,
+          "https://space.bilibili.com/123",
+        );
+        const plainNote = readHome(db).content.articles.find(
+          (a) => a.id === "plain-note",
+        )!;
+        assert.equal(plainNote.date, "2026-10-03T11:24:36.000Z");
+        assert.equal(plainNote.title, "");
+        assert.equal(plainNote.coverId, null);
+        assert.match(plainNote.body, /保留第二段/);
         assert.equal(
           Number(db.prepare("SELECT COUNT(*) n FROM checkins").get()!.n),
           count,
@@ -722,6 +1064,12 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
       home.content.tracks = [];
       const result = await admin.put("/api/home").send(home).expect(200);
       assert.deepEqual(result.body.content.photos, []);
+      await seed(db, uploads, resolve("assets/demo"));
+      assert.deepEqual(
+        readHome(db),
+        result.body,
+        "删除后的初始内容不会在再次启动时补回",
+      );
       assert.deepEqual((await request(app).get("/api/weather")).body, {
         available: false,
       });
@@ -732,8 +1080,17 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
   }
 });
 test("悉尼时区正确处理夏令时切换与午夜", () => {
-  assert.equal(sydneyDay(new Date("2026-01-01T13:30:00Z")), "2026-01-02");
-  assert.equal(sydneyDay(new Date("2026-07-01T13:30:00Z")), "2026-07-01");
-  assert.equal(sydneyDay(new Date("2026-10-03T15:59:59Z")), "2026-10-04");
-  assert.equal(sydneyDay(new Date("2026-10-03T16:00:00Z")), "2026-10-04");
+  assert.equal(zonedDay(new Date("2026-01-01T13:30:00Z")), "2026-01-02");
+  assert.equal(zonedDay(new Date("2026-07-01T13:30:00Z")), "2026-07-01");
+  assert.equal(zonedDay(new Date("2026-10-03T15:59:59Z")), "2026-10-04");
+  assert.equal(zonedDay(new Date("2026-10-03T16:00:00Z")), "2026-10-04");
+});
+test("同一时刻按所选时区跨日，支持半小时时区", () => {
+  const now = new Date("2026-01-01T00:15:00Z");
+  assert.equal(zonedDay(now, "Asia/Shanghai"), "2026-01-01");
+  assert.equal(zonedDay(now, "America/Los_Angeles"), "2025-12-31");
+  assert.equal(
+    zonedDay(new Date("2026-01-01T18:45:00Z"), "Asia/Kolkata"),
+    "2026-01-02",
+  );
 });

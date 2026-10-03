@@ -1,8 +1,9 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { ArrowUpRight, ArrowRight } from "lucide-react";
 import { useSite } from "./store";
-import { sydneyDay } from "../../shared/model";
-import { Cat, Dialog, Editable } from "./components/Common";
+import { themeCatAsset, useSiteTheme } from "./theme";
+import { mediaUrl, zonedDay } from "../../shared/model";
+import { Cat, Dialog, Editable, EditButton } from "./components/Common";
 import {
   Hero,
   PhotoCard,
@@ -28,6 +29,11 @@ import {
 const Editor = lazy(() =>
   import("./components/Editor").then((module) => ({ default: module.Editor })),
 );
+const ThemePicker = lazy(() =>
+  import("./components/ThemePicker").then((module) => ({
+    default: module.ThemePicker,
+  })),
+);
 const ContentDialog = lazy(() =>
   import("./components/Drawers").then((module) => ({
     default: module.ContentDialog,
@@ -51,22 +57,45 @@ function ModalFallback({ onClose }: { onClose: () => void }) {
   );
 }
 export default function App() {
-  const { content, loading, error, refresh, toast, auth, refreshAuth } =
-    useSite();
+  const {
+    home,
+    content,
+    loading,
+    error,
+    refresh,
+    toast,
+    auth,
+    refreshAuth,
+    editing,
+  } = useSite();
+  useSiteTheme(content?.theme);
+  const avatarId = home?.content.profile.avatarId;
+  const fallbackIcon = themeCatAsset(home?.content.theme);
+  useEffect(() => {
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!favicon) return;
+    favicon.type = avatarId ? "image/webp" : "image/svg+xml";
+    favicon.href = avatarId ? mediaUrl(avatarId, true) : fallbackIcon;
+  }, [avatarId, fallbackIcon]);
   const [panel, setPanel] = useState<{ kind: Panel; id?: string } | null>(null),
     [editor, setEditor] = useState<EditorSection | null>(null),
     [login, setLogin] = useState(location.pathname === "/login");
   const route = usePageNavigation();
   const [inbox, setInbox] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  useEffect(() => {
+    if (!editing) setEditor(null);
+  }, [editing]);
   const main = useRef<HTMLElement>(null);
   const previousRoute = useRef({ page: route.page, id: route.id });
   const now = useClock();
-  const day = sydneyDay(now);
+  const savedTimeZone = home?.content.location.timeZone;
+  const day = `${savedTimeZone}:${zonedDay(now, savedTimeZone)}`;
   const lastDay = useRef(day);
   useEffect(() => {
     if (lastDay.current !== day) {
       lastDay.current = day;
-      void refreshAuth();
+      void refreshAuth().catch(() => {});
     }
   }, [day]);
   useEffect(() => {
@@ -114,11 +143,12 @@ export default function App() {
         跳到页面内容
       </a>
       <div
-        className={`site-shell ${route.page !== "home" ? "section-shell" : ""} ${auth?.authenticated ? "with-admin" : ""}`}
+        className={`site-shell ${route.page !== "home" ? "section-shell" : ""}`}
       >
         <AdminBar
           onLogin={() => setLogin(true)}
           onMessages={() => setInbox(true)}
+          onTheme={() => setThemeOpen(true)}
         />
         <header className="site-header">
           <a
@@ -127,7 +157,6 @@ export default function App() {
             href="/"
             onClick={(event) => route.follow(event, "home")}
           >
-            <Cat />
             <span>
               {content.profile.name.toLowerCase()}
               <i>.</i>
@@ -149,7 +178,21 @@ export default function App() {
           <div className="header-contact">
             <span>
               <i />
-              SYDNEY, AU
+              <span
+                className="header-location-name"
+                title={[content.location.name, content.location.region]
+                  .filter(Boolean)
+                  .join(", ")}
+              >
+                {[content.location.name, content.location.region]
+                  .filter(Boolean)
+                  .join(", ")
+                  .toUpperCase()}
+              </span>
+              <EditButton
+                label="编辑顶部地点"
+                onClick={() => setEditor("location")}
+              />
             </span>
             <button className="button dark" onClick={() => open("contact")}>
               聊聊
@@ -172,7 +215,7 @@ export default function App() {
               <div className="bento-row top-row">
                 <Hero {...actions} />
                 <PhotoCard {...actions} />
-                <ClockCard now={now} />
+                <ClockCard now={now} edit={setEditor} />
               </div>
               <div className="bento-row middle-row">
                 <ProjectCard {...actions} />
@@ -202,7 +245,8 @@ export default function App() {
         </main>
         <footer className="site-footer">
           <span>
-            © {now.getFullYear()} {content.profile.name}
+            © {zonedDay(now, content.location.timeZone).slice(0, 4)}{" "}
+            {content.profile.name}
           </span>
           {route.page !== "home" && <SectionPlayer />}
           <div>
@@ -222,6 +266,14 @@ export default function App() {
             panel={panel.kind}
             id={panel.id}
             onClose={() => setPanel(null)}
+            onEdit={
+              panel.kind === "about"
+                ? () => {
+                    setPanel(null);
+                    setEditor("profile");
+                  }
+                : undefined
+            }
           />
         </Suspense>
       )}{" "}
@@ -243,6 +295,13 @@ export default function App() {
               setLogin(true);
             }}
           />
+        </Suspense>
+      )}
+      {themeOpen && auth?.authenticated && (
+        <Suspense
+          fallback={<ModalFallback onClose={() => setThemeOpen(false)} />}
+        >
+          <ThemePicker onClose={() => setThemeOpen(false)} />
         </Suspense>
       )}
       {login && (

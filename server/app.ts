@@ -11,7 +11,10 @@ import type { SiteAuth } from "./auth.js";
 import {
   contentSchema,
   referencedMedia,
-  sydneyDay,
+  zonedDay,
+  weatherLocationSchema,
+  type WeatherLocation,
+  type LocationResult,
   type Stats,
   type Weather,
 } from "../shared/model.js";
@@ -23,6 +26,7 @@ import {
 } from "./media.js";
 import { readHome } from "./db.js";
 import { createWeatherService } from "./weather.js";
+import { createLocationSearch } from "./locations.js";
 import { mountMessages } from "./messages.js";
 export interface AppOptions {
   auth: SiteAuth;
@@ -32,13 +36,16 @@ export interface AppOptions {
   staticDir?: string;
   secure?: boolean;
   now?: () => Date;
-  weather?: () => Promise<Weather>;
+  weather?: (location: WeatherLocation) => Promise<Weather>;
+  locations?: (query: string) => Promise<LocationResult[]>;
 }
 export function createApp(db: DatabaseSync, o: AppOptions) {
   const app = express();
   if (o.trustProxy !== undefined) app.set("trust proxy", o.trustProxy);
   const now = o.now || (() => new Date());
   const weather = o.weather || createWeatherService();
+  const locations = o.locations || createLocationSearch();
+  const siteTimeZone = () => readHome(db).content.location.timeZone;
   const audioCover = createAudioCoverReader(db, o.uploads);
   app.disable("x-powered-by");
   app.use((_req, res, next) => {
@@ -87,7 +94,8 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     return visitor;
   };
   const stats = (visitor: string): Stats => {
-    const day = sydneyDay(now());
+    const timeZone = siteTimeZone();
+    const day = zonedDay(now(), timeZone);
     const started = String(
       db.prepare("SELECT value FROM settings WHERE key='startedAt'").get()!
         .value,
@@ -104,7 +112,8 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
       daysOnline: Math.max(
         1,
         Math.floor(
-          (Date.parse(day) - Date.parse(sydneyDay(new Date(started)))) /
+          (Date.parse(day) -
+            Date.parse(zonedDay(new Date(started), timeZone))) /
             86400000,
         ) + 1,
       ),
@@ -124,10 +133,10 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
   };
   app.get("/api/home", (_req, res) => {
     const home = readHome(db);
-    // The revision changes with every publish, so browsers can cheaply
-    // revalidate public content without serving an outdated edit.
+    // Version the response shape as well as edits, so an upgrade also
+    // invalidates browser caches created before new settings existed.
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-    res.setHeader("ETag", `"home-${home.revision}"`);
+    res.setHeader("ETag", `"home-v5-${home.revision}"`);
     res.json(home);
   });
   app.put("/api/home", o.auth.requireAdmin, (req, res) => {
@@ -189,14 +198,14 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     if (!(await o.auth.session(req)))
       db.prepare(
         "INSERT OR IGNORE INTO visits(id,visitor_id,day) VALUES(?,?,?)",
-      ).run(p.data.pageViewId, visitor, sydneyDay(now()));
+      ).run(p.data.pageViewId, visitor, zonedDay(now(), siteTimeZone()));
     res.json(stats(visitor));
   });
   app.post("/api/checkin", limiter, (req, res) => {
     const visitor = getVisitor(req, res);
     db.prepare(
       "INSERT OR IGNORE INTO checkins(visitor_id,day) VALUES(?,?)",
-    ).run(visitor, sydneyDay(now()));
+    ).run(visitor, zonedDay(now(), siteTimeZone()));
     res.json(stats(visitor));
   });
   app.post("/api/likes", limiter, (req, res) => {
@@ -210,7 +219,37 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     else db.prepare("DELETE FROM likes WHERE visitor_id=?").run(visitor);
     res.json(stats(visitor));
   });
-  app.get("/api/weather", async (_req, res) => res.json(await weather()));
+  app.get("/api/weather", async (_req, res) =>
+    res.json(await weather(readHome(db).content.location)),
+  );
+  const locationLimiter = rateLimit({
+    windowMs: 60000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "地点查询有点频繁，请稍后重试。" },
+  });
+  app.get(
+    "/api/locations",
+    o.auth.requireAdmin,
+    locationLimiter,
+    async (req, res) => {
+      const parsed = z.string().trim().min(2).max(80).safeParse(req.query.q);
+      if (!parsed.success)
+        throw new HttpError(400, "请输入 2 至 80 个字的城市名称。");
+      res.json(await locations(parsed.data));
+    },
+  );
+  app.post(
+    "/api/weather/preview",
+    o.auth.requireAdmin,
+    locationLimiter,
+    async (req, res) => {
+      const parsed = weatherLocationSchema.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, "请检查天气位置和时区。");
+      res.json(await weather(parsed.data));
+    },
+  );
   mountMessages(app, db, o.auth, getVisitor, now);
   const incoming = join(o.uploads, "incoming");
   mkdirSync(incoming, { recursive: true });
@@ -264,9 +303,7 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     // Published media uses immutable UUID URLs. Draft-only uploads stay private.
     res.setHeader(
       "Cache-Control",
-      isPublic
-        ? "public, max-age=31536000, immutable"
-        : "private, no-store",
+      isPublic ? "public, max-age=31536000, immutable" : "private, no-store",
     );
     res.sendFile(resolve(o.uploads, String(thumb || row.filename)));
   });
@@ -284,7 +321,15 @@ export function createApp(db: DatabaseSync, o: AppOptions) {
     );
     app.use(express.static(o.staticDir, { index: false, maxAge: 0 }));
     app.get(
-      ["/", "/login", "/projects", "/articles", "/photos", "/collections"],
+      [
+        "/",
+        "/login",
+        "/projects",
+        "/articles",
+        "/photos",
+        "/collections",
+        "/friends",
+      ],
       (_req, res) =>
         res.sendFile(join(o.staticDir!, "index.html"), {
           headers: { "Cache-Control": "no-cache" },
