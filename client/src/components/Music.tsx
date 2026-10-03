@@ -17,14 +17,29 @@ import {
   SkipBack,
   SkipForward,
   ListMusic,
+  ListOrdered,
+  Repeat,
+  Repeat1,
+  Shuffle,
 } from "lucide-react";
 import { useSite } from "../store";
 import { mediaUrl } from "../../../shared/model";
-import { EditButton } from "./Common";
+import { Dialog, EditButton, Empty } from "./Common";
 import { MusicCover } from "./MusicCover";
+import {
+  nextTrackId,
+  parsePlaybackMode,
+  playbackModes,
+  type PlaybackMode,
+} from "../playback";
 function stored() {
   try {
-    return JSON.parse(localStorage.getItem("hejia-homepage:audio") || "{}");
+    const value = JSON.parse(
+      localStorage.getItem("hejia-homepage:audio") || "{}",
+    );
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value
+      : {};
   } catch {
     return {};
   }
@@ -35,8 +50,14 @@ function usePlayer() {
   const initial = useRef(stored());
   const audio = useRef<HTMLAudioElement>(null),
     source = useRef(""),
-    restore = useRef(true);
-  const [id, setId] = useState<string>(initial.current.id || ""),
+    restore = useRef(true),
+    history = useRef<string[]>([]);
+  const [id, setId] = useState<string>(
+      typeof initial.current.id === "string" ? initial.current.id : "",
+    ),
+    [mode, setMode] = useState<PlaybackMode>(
+      parsePlaybackMode(initial.current.mode),
+    ),
     [playing, setPlaying] = useState(false),
     [time, setTime] = useState(0),
     [duration, setDuration] = useState(0),
@@ -59,9 +80,10 @@ function usePlayer() {
     const a = audio.current;
     if (!a) return;
     const url = mediaUrl(track?.audioId);
-    if (source.current === url) return;
+    const key = `${track?.id || ""}:${url}`;
+    if (source.current === key) return;
     a.pause();
-    source.current = url;
+    source.current = key;
     setTime(0);
     setDuration(0);
     setError("");
@@ -72,7 +94,7 @@ function usePlayer() {
       a.removeAttribute("src");
       a.load();
     }
-  }, [track?.audioId]);
+  }, [track?.id, track?.audioId]);
   useEffect(() => {
     if (audio.current) audio.current.volume = volume;
   }, [volume]);
@@ -80,32 +102,63 @@ function usePlayer() {
     try {
       localStorage.setItem(
         "hejia-homepage:audio",
-        JSON.stringify({ id, time, volume }),
+        JSON.stringify({ id, time, volume, mode }),
       );
     } catch {}
-  }, [id, time, volume]);
+  }, [id, time, volume, mode]);
   const play = async () => {
     const a = audio.current;
     if (!a || !track) return;
+    const requestedSource = source.current;
     try {
       setError("");
+      wantPlay.current = true;
       await a.play();
-    } catch {
+    } catch (error) {
+      if (
+        source.current !== requestedSource ||
+        (error instanceof DOMException && error.name === "AbortError")
+      )
+        return;
       wantPlay.current = false;
       setPlaying(false);
       setError("播放失败，请重试或更换歌曲。");
     }
   };
-  const select = (next: string) => {
+  const move = (next: string, autoplay: boolean, remember = true) => {
+    if (!tracks.some((track) => track.id === next)) return;
     restore.current = false;
-    wantPlay.current = playing;
-    if (next === id) return;
+    wantPlay.current = autoplay;
+    if (next === id) {
+      if (audio.current) audio.current.currentTime = 0;
+      setTime(0);
+      if (autoplay) void play();
+      return;
+    }
+    if (mode === "shuffle" && remember && id)
+      history.current = [...history.current, id].slice(-100);
     setId(next);
   };
+  const select = (next: string) => {
+    if (next !== id) move(next, playing || wantPlay.current);
+  };
   const step = (offset: number) => {
-    const at = tracks.findIndex((t) => t.id === id);
-    if (tracks.length)
-      select(tracks[(at + offset + tracks.length) % tracks.length].id);
+    if (mode === "shuffle" && offset < 0) {
+      while (history.current.length) {
+        const previous = history.current.pop()!;
+        if (previous !== id && tracks.some((track) => track.id === previous)) {
+          move(previous, playing || wantPlay.current, false);
+          return;
+        }
+      }
+    }
+    const next = nextTrackId(
+      tracks.map((track) => track.id),
+      id,
+      mode,
+      offset < 0 ? "previous" : "next",
+    );
+    if (next) move(next, playing || wantPlay.current);
   };
   const retry = () => {
     if (!audio.current) return;
@@ -116,7 +169,11 @@ function usePlayer() {
     <audio
       ref={audio}
       preload="metadata"
-      onPlay={() => setPlaying(true)}
+      loop={mode === "repeat-one"}
+      onPlay={() => {
+        wantPlay.current = false;
+        setPlaying(true);
+      }}
       onPause={() => setPlaying(false)}
       onTimeUpdate={() => setTime(audio.current?.currentTime || 0)}
       onLoadedMetadata={() => {
@@ -129,23 +186,26 @@ function usePlayer() {
           );
         }
         restore.current = false;
-        if (wantPlay.current) {
-          wantPlay.current = false;
-          void play();
-        }
+        if (wantPlay.current) void play();
       }}
       onError={() => {
         if (track) {
+          wantPlay.current = false;
           setPlaying(false);
           setError("音乐暂时无法加载。");
         }
       }}
       onEnded={() => {
-        const at = tracks.findIndex((t) => t.id === id);
-        if (at >= 0 && at < tracks.length - 1) {
-          wantPlay.current = true;
-          setId(tracks[at + 1].id);
-        } else setPlaying(false);
+        const next = nextTrackId(
+          tracks.map((track) => track.id),
+          id,
+          mode,
+        );
+        if (next) move(next, true);
+        else {
+          wantPlay.current = false;
+          setPlaying(false);
+        }
       }}
     />
   );
@@ -156,9 +216,19 @@ function usePlayer() {
     time,
     duration,
     volume,
+    mode,
     error,
     setVolume,
-    toggle: () => (playing ? audio.current?.pause() : void play()),
+    setMode: (next: PlaybackMode) => {
+      if (next !== mode) history.current = [];
+      setMode(next);
+    },
+    toggle: () => {
+      if (playing || wantPlay.current) {
+        wantPlay.current = false;
+        audio.current?.pause();
+      } else void play();
+    },
     seek: (n: number) => {
       if (audio.current && Number.isFinite(n)) {
         audio.current.currentTime = Math.max(0, Math.min(duration, n));
@@ -230,6 +300,25 @@ function XiaohongshuIcon() {
     </svg>
   );
 }
+function BilibiliIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m7 2 3 4m7-4-3 4" />
+      <rect x="2" y="6" width="20" height="15" rx="3" />
+      <path d="m7 11 1 3m9-3-1 3m-6 3 2 1 2-1" />
+    </svg>
+  );
+}
 export function SectionPlayer() {
   const p = useContext(Context);
   if (!p.track) return null;
@@ -249,6 +338,174 @@ export function SectionPlayer() {
     </div>
   );
 }
+function PlaybackProgress({
+  player: p,
+  label = "播放进度",
+}: {
+  player: Player;
+  label?: string;
+}) {
+  return (
+    <>
+      <input
+        className="progress"
+        aria-label={label}
+        type="range"
+        min="0"
+        max={p.duration || 1}
+        step=".1"
+        value={p.time}
+        disabled={!p.duration}
+        onChange={(e) => p.seek(Number(e.target.value))}
+        style={
+          {
+            "--progress": `${p.duration ? (p.time / p.duration) * 100 : 0}%`,
+          } as React.CSSProperties
+        }
+      />
+      <div className="time-label">
+        <span>{timeLabel(p.time)}</span>
+        <span>{timeLabel(p.duration)}</span>
+      </div>
+    </>
+  );
+}
+const playbackModeIcons = {
+  sequential: ListOrdered,
+  "repeat-all": Repeat,
+  "repeat-one": Repeat1,
+  shuffle: Shuffle,
+};
+function PlaybackModeButton({
+  player: p,
+  compact = false,
+}: {
+  player: Player;
+  compact?: boolean;
+}) {
+  const Icon = playbackModeIcons[p.mode];
+  const index = playbackModes.findIndex((mode) => mode.value === p.mode);
+  const label = playbackModes[index].label;
+  const next = playbackModes[(index + 1) % playbackModes.length];
+  return (
+    <button
+      type="button"
+      className={`playback-mode ${compact ? "playback-mode-compact" : "playback-mode-field"}`}
+      title={`${label} · 点击切换为${next.label}`}
+      aria-label={`${compact ? "播放模式" : "音乐列表播放模式"}：${label}，点击切换为${next.label}`}
+      onClick={() => p.setMode(next.value)}
+    >
+      <Icon size={17} aria-hidden="true" />
+      {!compact && <span>{label}</span>}
+      {!compact && <small>切换模式</small>}
+    </button>
+  );
+}
+function PlaylistDialog({ onClose }: { onClose: () => void }) {
+  const p = useContext(Context);
+  return (
+    <Dialog
+      title="音乐列表"
+      eyebrow={`ON REPEAT / ${p.tracks.length} 首歌曲`}
+      wide
+      className="playlist-dialog"
+      onClose={onClose}
+    >
+      {p.track ? (
+        <>
+          <aside className="playlist-current" aria-label="当前歌曲">
+            <div className="playlist-current-summary">
+              <MusicCover
+                className="playlist-current-cover"
+                coverId={p.track.coverId}
+                audioId={p.track.audioId}
+                alt={`${p.track.title || "当前歌曲"} 封面`}
+              />
+              <div>
+                <span className="playlist-current-status">
+                  {p.playing ? "正在播放" : "当前选择"}
+                </span>
+                <h3>{p.track.title || "未命名歌曲"}</h3>
+                {p.track.artist && <p>{p.track.artist}</p>}
+              </div>
+            </div>
+            <div className="playlist-controls">
+              <button
+                aria-label="上一首"
+                disabled={p.tracks.length < 2}
+                onClick={() => p.step(-1)}
+              >
+                <SkipBack size={20} />
+              </button>
+              <button
+                className="play-button"
+                aria-label={p.playing ? "暂停音乐" : "播放音乐"}
+                onClick={p.toggle}
+              >
+                {p.playing ? (
+                  <Pause size={20} fill="currentColor" />
+                ) : (
+                  <Play size={20} fill="currentColor" />
+                )}
+              </button>
+              <button
+                aria-label="下一首"
+                disabled={p.tracks.length < 2}
+                onClick={() => p.step(1)}
+              >
+                <SkipForward size={20} />
+              </button>
+            </div>
+            <PlaybackModeButton player={p} />
+            <PlaybackProgress player={p} label="音乐列表播放进度" />
+            {p.error && (
+              <div className="audio-error" role="alert">
+                {p.error}
+                <button onClick={p.retry}>重试</button>
+              </div>
+            )}
+          </aside>
+          <ol className="playlist-list" aria-label="全部歌曲">
+            {p.tracks.map((track, index) => (
+              <li key={track.id}>
+                <button
+                  className="playlist-track"
+                  aria-label={`切换到 ${track.title || "未命名歌曲"}`}
+                  aria-pressed={p.track?.id === track.id}
+                  onClick={() => p.select(track.id)}
+                >
+                  <span className="playlist-index">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <MusicCover
+                    className="playlist-track-cover"
+                    coverId={track.coverId}
+                    audioId={track.audioId}
+                    alt=""
+                  />
+                  <span className="playlist-track-info">
+                    <strong>{track.title || "未命名歌曲"}</strong>
+                    {track.artist && <small>{track.artist}</small>}
+                  </span>
+                  {p.track?.id === track.id && (
+                    <span className="playlist-track-status">
+                      {p.playing ? "播放中" : "已选择"}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <Empty>
+          <Music2 size={32} />
+          还没有歌曲，添加音乐后就会显示在这里。
+        </Empty>
+      )}
+    </Dialog>
+  );
+}
 export function MusicCard({
   onEdit,
   onContact,
@@ -259,6 +516,21 @@ export function MusicCard({
   const p = useContext(Context);
   const { content, stats, like, notify } = useSite();
   const [liking, setLiking] = useState(false);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
+  const volumeOptions = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const closeVolume = (event: PointerEvent) => {
+      const options = volumeOptions.current;
+      if (
+        options?.open &&
+        event.target instanceof Node &&
+        !options.contains(event.target)
+      )
+        options.open = false;
+    };
+    document.addEventListener("pointerdown", closeVolume);
+    return () => document.removeEventListener("pointerdown", closeVolume);
+  }, []);
   return (
     <section className="card music-card" aria-label="音乐与联系">
       <div className="music-heading">
@@ -267,46 +539,54 @@ export function MusicCard({
           <span className="eyebrow">ON REPEAT</span>
           <h2>此刻的旋律</h2>
         </div>
-        <EditButton onClick={onEdit} label="编辑音乐" />
-        <details className="player-options">
-          <summary aria-label="音乐设置">
-            <ListMusic size={16} />
-          </summary>
-          <div className="player-popover">
-            <label>
-              <Volume2 size={14} />
-              音量
-              <input
-                aria-label="音量"
-                type="range"
-                min="0"
-                max="1"
-                step=".01"
-                value={p.volume}
-                onChange={(e) => p.setVolume(Number(e.target.value))}
-              />
-            </label>
-            {p.tracks.map((t) => (
-              <button
-                key={t.id}
-                className={p.track?.id === t.id ? "selected" : ""}
-                onClick={() => p.select(t.id)}
-              >
-                {t.title}
-              </button>
-            ))}
-            {p.tracks.length > 1 && (
-              <div className="track-nav">
-                <button aria-label="上一首" onClick={() => p.step(-1)}>
-                  <SkipBack size={16} />
-                </button>
-                <button aria-label="下一首" onClick={() => p.step(1)}>
-                  <SkipForward size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-        </details>
+        <div className="music-actions">
+          <EditButton onClick={onEdit} label="编辑音乐" />
+          <PlaybackModeButton player={p} compact />
+          <details
+            ref={volumeOptions}
+            className="player-options"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.currentTarget.open = false;
+                e.currentTarget.querySelector("summary")?.focus();
+              }
+            }}
+          >
+            <summary aria-label="调整音量" title="调整音量">
+              <Volume2 size={17} />
+            </summary>
+            <div className="player-popover">
+              <label>
+                音量
+                <input
+                  aria-label="音量"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step=".01"
+                  value={p.volume}
+                  onChange={(e) => p.setVolume(Number(e.target.value))}
+                />
+                <span className="volume-value">
+                  {Math.round(p.volume * 100)}%
+                </span>
+              </label>
+            </div>
+          </details>
+          <button
+            className="playlist-open"
+            aria-label="打开音乐列表"
+            title="音乐列表"
+            aria-haspopup="dialog"
+            onClick={() => {
+              if (volumeOptions.current) volumeOptions.current.open = false;
+              setPlaylistOpen(true);
+            }}
+          >
+            <ListMusic size={18} />
+          </button>
+        </div>
       </div>
       <div className="music-player">
         <MusicCover
@@ -318,26 +598,7 @@ export function MusicCard({
         <div className="music-info">
           <strong>{p.track?.title || "等一首喜欢的歌"}</strong>
           <small>{p.track?.artist || "登录后添加音乐"}</small>
-          <input
-            className="progress"
-            aria-label="播放进度"
-            type="range"
-            min="0"
-            max={p.duration || 1}
-            step=".1"
-            value={p.time}
-            disabled={!p.duration}
-            onChange={(e) => p.seek(Number(e.target.value))}
-            style={
-              {
-                "--progress": `${p.duration ? (p.time / p.duration) * 100 : 0}%`,
-              } as React.CSSProperties
-            }
-          />
-          <div className="time-label">
-            <span>{timeLabel(p.time)}</span>
-            <span>{timeLabel(p.duration)}</span>
-          </div>
+          <PlaybackProgress player={p} />
         </div>
         <button
           className="play-button"
@@ -405,6 +666,25 @@ export function MusicCard({
             <span>小红书</span>
           </button>
         )}
+        {content?.social.bilibili ? (
+          <a
+            className="social-link bilibili-link"
+            href={content.social.bilibili}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <BilibiliIcon />
+            <span>Bilibili</span>
+          </a>
+        ) : (
+          <button
+            className="social-link bilibili-link"
+            onClick={() => notify("Bilibili 主页暂未公开。")}
+          >
+            <BilibiliIcon />
+            <span>Bilibili</span>
+          </button>
+        )}
         <button
           className={`like-button ${stats?.liked ? "liked" : ""}`}
           aria-label={stats?.liked ? "取消喜欢" : "喜欢这个网站"}
@@ -443,6 +723,9 @@ export function MusicCard({
           </span>
         </button>
       </div>
+      {playlistOpen && (
+        <PlaylistDialog onClose={() => setPlaylistOpen(false)} />
+      )}
     </section>
   );
 }
