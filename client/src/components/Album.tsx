@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { mediaUrl, type HomeContent } from "../../../shared/model";
 import { useSite } from "../store";
-import { Empty, SafeImage } from "./Common";
+import { Empty, SafeImage, EditButton } from "./Common";
 
 type Photo = HomeContent["photos"][number];
 
@@ -99,11 +99,6 @@ function PhotoWall({
         >
           <span className="album-tile-image">
             <SafeImage src={mediaUrl(photo.mediaId)} alt="" />
-            {featured && (
-              <span className="album-featured-label">
-                <i /> IN THE FRAME
-              </span>
-            )}
             <span className="album-expand" aria-hidden="true">
               <Maximize2 size={16} />
             </span>
@@ -123,7 +118,6 @@ function PhotoWall({
                 ) : (
                   photo.caption || "日常切片"
                 )}
-                {photo.demo && <span> · 示例</span>}
               </small>
             </span>
             <ArrowUpRight size={17} aria-hidden="true" />
@@ -137,9 +131,13 @@ function PhotoWall({
 export function Album({
   id,
   onSelect,
+  onEdit,
+  fullPage = false,
 }: {
   id?: string;
   onSelect: (id: string) => void;
+  onEdit?: () => void;
+  fullPage?: boolean;
 }) {
   const { content } = useSite();
   const photos = content!.photos;
@@ -147,10 +145,25 @@ export function Album({
   const at = photos.findIndex((p) => p.id === id);
   const wall = useRef<HTMLDivElement>(null);
   const viewer = useRef<HTMLDivElement>(null);
+  const thumbnails = useRef<HTMLDivElement>(null);
   const galleryPosition = useRef(0);
   const opener = useRef("");
   const previous = useRef<string | undefined>(undefined);
   const photoId = photo?.id;
+  const PhotoHeading = fullPage ? "h1" : "h3";
+
+  useLayoutEffect(() => {
+    const strip = thumbnails.current;
+    const active = strip?.querySelector<HTMLButtonElement>(
+      '[aria-pressed="true"]',
+    );
+    if (!strip || !active) return;
+    const left = active.offsetLeft - 5;
+    const right = active.offsetLeft + active.offsetWidth + 5;
+    if (left < strip.scrollLeft) strip.scrollLeft = left;
+    else if (right > strip.scrollLeft + strip.clientWidth)
+      strip.scrollLeft = right - strip.clientWidth;
+  }, [photoId]);
 
   useLayoutEffect(() => {
     const main = wall.current?.closest("main");
@@ -238,6 +251,7 @@ export function Album({
             <span>
               ← → 切换<span> · ESC 返回</span>
             </span>
+            {onEdit && <EditButton onClick={onEdit} label="编辑相册" />}
           </div>
           <div className="photo-viewer">
             <div className="photo-stage">
@@ -262,12 +276,9 @@ export function Album({
             <div className="photo-details">
               <div className="photo-meta" aria-live="polite">
                 <div>
-                  <h3>{photo.title}</h3>
+                  <PhotoHeading>{photo.title}</PhotoHeading>
                   <p>{photo.caption}</p>
-                  <small>
-                    {photo.location}
-                    {photo.demo ? " · 示例素材" : ""}
-                  </small>
+                  <small>{photo.location}</small>
                 </div>
                 <span>
                   {at + 1} / {photos.length}
@@ -276,19 +287,24 @@ export function Album({
               {photo.source && (
                 <p className="source-line">来源：{photo.source}</p>
               )}
-              <div className="photo-thumbnails">
-                {photos.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelect(p.id)}
-                    aria-label={`查看照片：${p.title}`}
-                    aria-pressed={p.id === photo.id}
-                  >
-                    <SafeImage src={mediaUrl(p.mediaId, true)} alt={p.title} />
-                  </button>
-                ))}
-              </div>
             </div>
+          </div>
+          <div
+            ref={thumbnails}
+            className="photo-thumbnails"
+            role="group"
+            aria-label="切换照片"
+          >
+            {photos.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onSelect(p.id)}
+                aria-label={`查看照片：${p.title}`}
+                aria-pressed={p.id === photo.id}
+              >
+                <SafeImage src={mediaUrl(p.mediaId, true)} alt={p.title} />
+              </button>
+            ))}
           </div>
         </div>
       )}

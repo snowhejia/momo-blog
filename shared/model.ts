@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { articleDateSchema } from "./articles.js";
 const text = (max: number) => z.string().max(max);
 const id = z.string().min(1, "请补全内容或先上传所需素材。").max(80);
 const mediaId = id.nullable();
@@ -29,15 +30,7 @@ export const articleSchema = z.object({
   title: text(160),
   summary: text(300),
   body: text(50000),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "请选择有效日期")
-    .refine(
-      (v) =>
-        Number.isFinite(Date.parse(v)) &&
-        new Date(v).toISOString().slice(0, 10) === v,
-      "请选择有效日期",
-    ),
+  date: articleDateSchema,
   coverId: mediaId,
   url: webLink,
 });
@@ -60,6 +53,13 @@ export const collectionSchema = z.object({
   source: text(2000),
   demo: z.boolean(),
 });
+export const friendSchema = z.object({
+  id,
+  title: text(80).trim().min(1, "请填写友链的网站名称"),
+  description: text(300),
+  url: z.string().trim().min(1, "请填写友链的网站链接").pipe(webLink),
+  avatarId: mediaId,
+});
 export const trackSchema = z.object({
   id,
   title: text(160),
@@ -69,23 +69,63 @@ export const trackSchema = z.object({
   demo: z.boolean(),
   source: text(2000),
 });
+export const timeZoneSchema = z
+  .string()
+  .max(100)
+  .refine((value) => {
+    try {
+      new Intl.DateTimeFormat("en", { timeZone: value }).format();
+      return true;
+    } catch {
+      return false;
+    }
+  }, "请选择有效时区");
+export const weatherLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  timeZone: timeZoneSchema,
+});
+export const locationSchema = weatherLocationSchema.extend({
+  name: z.string().trim().min(1, "请填写地点名称").max(80),
+  region: z.string().trim().max(40),
+});
+export type SiteLocation = z.infer<typeof locationSchema>;
+export type WeatherLocation = z.infer<typeof weatherLocationSchema>;
+export interface LocationResult extends SiteLocation {
+  country: string;
+  area: string;
+}
+export const DEFAULT_LOCATION: SiteLocation = {
+  name: "Sydney",
+  region: "AU",
+  timeZone: "Australia/Sydney",
+  latitude: -33.8688,
+  longitude: 151.2093,
+};
+export const weatherLocationKey = (location: WeatherLocation) =>
+  `${location.latitude},${location.longitude},${location.timeZone}`;
+export const DEFAULT_ABOUT_BODY =
+  "这是我的个人空间。把作品、文字和日常放在一起，也为下一次突如其来的灵感，留一个位置。";
+export const siteThemeSchema = z.enum(["fresh", "blush", "midnight"]);
+export type SiteTheme = z.infer<typeof siteThemeSchema>;
 export const contentSchema = z
   .object({
+    theme: siteThemeSchema.default("fresh"),
+    location: locationSchema.default(() => ({ ...DEFAULT_LOCATION })),
     profile: z.object({
       name: text(40),
       avatarId: mediaId.default(null),
       headline: text(160),
       introduction: text(300),
       description: text(300),
+      aboutBody: text(5000).default(DEFAULT_ABOUT_BODY),
       eyebrow: text(100),
       motto: text(150),
-      photoId: text(80),
-      photoCaption: text(160),
-      demo: z.boolean(),
     }),
     social: z.object({
       github: webLink,
       xiaohongshu: webLink.default(""),
+      bilibili: webLink.default(""),
       email: text(254).refine(
         (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
         "请输入有效邮箱",
@@ -95,6 +135,7 @@ export const contentSchema = z
     articles: z.array(articleSchema).max(100),
     photos: z.array(photoSchema).max(200),
     collections: z.array(collectionSchema).max(200),
+    friends: z.array(friendSchema).max(100).default([]),
     tracks: z.array(trackSchema).max(100),
   })
   .superRefine((c, ctx) => {
@@ -103,6 +144,7 @@ export const contentSchema = z
       "articles",
       "photos",
       "collections",
+      "friends",
       "tracks",
     ] as const) {
       const ids = c[key].map((v) => v.id);
@@ -156,6 +198,7 @@ export type Project = z.infer<typeof projectSchema>;
 export type Article = z.infer<typeof articleSchema>;
 export type Photo = z.infer<typeof photoSchema>;
 export type Collection = z.infer<typeof collectionSchema>;
+export type Friend = z.infer<typeof friendSchema>;
 export type Track = z.infer<typeof trackSchema>;
 export interface HomeResponse {
   revision: number;
@@ -210,15 +253,16 @@ export function referencedMedia(
   c.projects.forEach((p) => add(p.coverId));
   c.articles.forEach((p) => add(p.coverId));
   c.collections.forEach((p) => add(p.imageId));
+  c.friends.forEach((p) => add(p.avatarId));
   c.tracks.forEach((p) => {
     add(p.audioId, "audio");
     add(p.coverId);
   });
   return refs;
 }
-export function sydneyDay(date: Date) {
+export function zonedDay(date: Date, timeZone = DEFAULT_LOCATION.timeZone) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

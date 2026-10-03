@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X, ImageOff, Pencil, ArrowUpRight } from "lucide-react";
 import { useSite } from "../store";
+import { registerDialog, setDialogBusy } from "../dialogLayers";
+import { themeCatAsset } from "../theme";
 import type { HomeContent } from "../../../shared/model";
 export function Cat({ className = "" }: { className?: string }) {
+  const { content } = useSite();
   return (
     <img
-      src="/assets/cat.svg"
-      alt="像素猫标志"
+      src={themeCatAsset(content?.theme)}
+      alt={content?.theme === "blush" ? "卡通猫标志" : "像素猫标志"}
       className={`cat ${className}`}
     />
   );
@@ -46,6 +49,7 @@ export function Dialog({
   onClose,
   wide = false,
   className = "",
+  busy = false,
 }: {
   title: string;
   eyebrow?: string;
@@ -53,16 +57,31 @@ export function Dialog({
   onClose: () => void;
   wide?: boolean;
   className?: string;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    ref.current?.showModal();
+    const action = previous?.dataset.adminAction;
+    const dialog = ref.current!;
+    dialog.showModal();
+    const unregister = registerDialog(dialog);
     return () => {
-      ref.current?.close();
-      previous?.focus();
+      unregister();
+      dialog.close();
+      requestAnimationFrame(() => {
+        if (previous?.isConnected) previous.focus();
+        else if (action)
+          document
+            .querySelector<HTMLElement>(`[data-admin-action="${action}"]`)
+            ?.focus();
+      });
     };
   }, []);
+  useEffect(() => {
+    if (ref.current) setDialogBusy(ref.current, busy);
+  }, [busy]);
   return (
     <dialog
       ref={ref}
@@ -111,12 +130,12 @@ export function Dialog({
         )
           onClose();
       }}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
     >
       <div className="dialog-head">
         <div>
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-          <h2 id="dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
         </div>
         <button
           className="icon-button close-button"

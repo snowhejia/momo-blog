@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Search } from "lucide-react";
 import { useSite } from "../store";
 import { mediaUrl } from "../../../shared/model";
@@ -7,6 +7,9 @@ import type { Panel } from "./HomeCards";
 import { sectionNames, type Section } from "../navigation";
 import { Album } from "./Album";
 import { ContactDialog } from "./Contact";
+import { Friends } from "./Friends";
+import { ArticleTime } from "./ArticleTime";
+import { articleExcerpt } from "../../../shared/articles";
 
 const sectionInfo = {
   projects: {
@@ -37,7 +40,69 @@ const sectionInfo = {
     unit: "份收藏",
     number: "04",
   },
+  friends: {
+    title: "去朋友家坐坐",
+    eyebrow: "FRIENDS & NEIGHBORS",
+    description: "顺着链接，遇见一些有趣的人和他们的小小世界。",
+    unit: "位朋友",
+    number: "05",
+  },
 };
+
+function AboutText({
+  field,
+  label,
+  className = "",
+  maxLength,
+}: {
+  field: "introduction" | "description" | "aboutBody" | "motto";
+  label: string;
+  className?: string;
+  maxLength: number;
+}) {
+  const { content, editing, change } = useSite();
+  const input = useRef<HTMLTextAreaElement>(null);
+  const value = content!.profile[field];
+  useLayoutEffect(() => {
+    const element = input.current;
+    if (!element) return;
+    const fit = () => {
+      element.style.height = "0px";
+      element.style.height = `${element.scrollHeight + 2}px`;
+    };
+    fit();
+    let width = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth !== width) {
+        width = element.clientWidth;
+        fit();
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [editing, value]);
+  return editing ? (
+    <label className={`about-text-field ${className}`}>
+      <span>{label}</span>
+      <textarea
+        ref={input}
+        className="inline-edit"
+        aria-label={`编辑${label}`}
+        rows={1}
+        maxLength={maxLength}
+        value={value}
+        onChange={(event) =>
+          change((c) => ({
+            ...c,
+            profile: { ...c.profile, [field]: event.target.value },
+          }))
+        }
+      />
+    </label>
+  ) : value ? (
+    <p className={className}>{value}</p>
+  ) : null;
+}
 
 export function ContentPage({
   panel,
@@ -52,35 +117,46 @@ export function ContentPage({
 }) {
   const { content } = useSite();
   const info = sectionInfo[panel];
+  const isDetail =
+    panel !== "friends" &&
+    !!id &&
+    content![panel].some((item) => item.id === id);
   return (
     <>
-      <header className="section-heading">
-        <div>
-          <span className="eyebrow">
-            <i />
-            {info.eyebrow}
-          </span>
-          <h1>
-            {info.title}
-            <span>.</span>
-          </h1>
-          <p>{info.description}</p>
-        </div>
-        <div className="section-heading-meta">
-          <span className="section-number" aria-hidden="true">
-            {info.number}
-          </span>
-          <span className="section-count">
-            {String(content![panel].length).padStart(2, "0")} {info.unit}
-          </span>
-          <EditButton
-            onClick={onEdit}
-            label={`编辑${panel === "articles" ? "文章" : sectionNames[panel]}`}
-          />
-        </div>
-      </header>
-      <div className="section-content">
-        <ContentBody panel={panel} id={id} onSelect={onSelect} />
+      {!isDetail && (
+        <header className="section-heading">
+          <div>
+            <span className="eyebrow">
+              <i />
+              {info.eyebrow}
+            </span>
+            <h1>
+              {info.title}
+              <span>.</span>
+            </h1>
+            <p>{info.description}</p>
+          </div>
+          <div className="section-heading-meta">
+            <span className="section-number" aria-hidden="true">
+              {info.number}
+            </span>
+            <span className="section-count">
+              {String(content![panel].length).padStart(2, "0")} {info.unit}
+            </span>
+            <EditButton
+              onClick={onEdit}
+              label={`编辑${panel === "articles" ? "文章" : sectionNames[panel]}`}
+            />
+          </div>
+        </header>
+      )}
+      <div className={`section-content${isDetail ? " section-detail" : ""}`}>
+        <ContentBody
+          panel={panel}
+          id={id}
+          onSelect={onSelect}
+          onEdit={onEdit}
+        />
       </div>
     </>
   );
@@ -90,10 +166,12 @@ export function ContentDialog({
   panel,
   id,
   onClose,
+  onEdit,
 }: {
   panel: Panel;
   id?: string;
   onClose: () => void;
+  onEdit?: () => void;
 }) {
   const { content } = useSite();
   if (panel === "contact") return <ContactDialog onClose={onClose} />;
@@ -107,7 +185,7 @@ export function ContentDialog({
           },
           contact: { title: "从一句你好开始。", eyebrow: "SAY HELLO" },
           sources: {
-            title: "关于这里的示例素材",
+            title: "素材来源",
             eyebrow: "CREDITS & SOURCES",
           },
         }[panel as "about" | "contact" | "sources"];
@@ -118,7 +196,7 @@ export function ContentDialog({
       onClose={onClose}
       wide={panel !== "about"}
     >
-      <ContentBody panel={panel} id={id} />
+      <ContentBody panel={panel} id={id} onEdit={onEdit} />
     </Dialog>
   );
 }
@@ -127,12 +205,14 @@ function ContentBody({
   panel,
   id,
   onSelect,
+  onEdit,
 }: {
   panel: Panel;
   id?: string;
   onSelect?: (id: string) => void;
+  onEdit?: () => void;
 }) {
-  const { content } = useSite();
+  const { content, editing } = useSite();
   const [localSelected, setLocalSelected] = useState(id || ""),
     [filter, setFilter] = useState(
       ["图片", "网站", "灵感"].includes(id || "") ? id! : "全部",
@@ -146,19 +226,44 @@ function ContentBody({
   const article = content!.articles.find((a) => a.id === selected);
   const project = content!.projects.find((p) => p.id === selected);
   const collection = content!.collections.find((c) => c.id === selected);
+  const DetailHeading = onSelect ? "h1" : "h3";
+  const detailToolbar = (label: string, onBack: () => void) => (
+    <div className="reading-toolbar">
+      <button className="text-button back-link" onClick={onBack}>
+        <ArrowLeft size={16} />
+        {label}
+      </button>
+      {onEdit && (
+        <EditButton
+          onClick={onEdit}
+          label={
+            panel === "articles"
+              ? "编辑文章"
+              : panel === "projects"
+                ? "编辑项目"
+                : "编辑收集"
+          }
+        />
+      )}
+    </div>
+  );
   return (
     <>
-      {panel === "photos" && <Album id={selected} onSelect={setSelected} />}
+      {panel === "friends" && <Friends />}
+      {panel === "photos" && (
+        <Album
+          id={selected}
+          onSelect={setSelected}
+          onEdit={onEdit}
+          fullPage={Boolean(onSelect)}
+        />
+      )}
       {panel === "articles" &&
         (article ? (
-          <article className="reading-view">
-            <button
-              className="text-button back-link"
-              onClick={() => setSelected("")}
-            >
-              <ArrowLeft size={16} />
-              所有文字
-            </button>
+          <article
+            className={`reading-view article-reading${article.coverId ? "" : " text-only"}`}
+          >
+            {detailToolbar("所有文字", () => setSelected(""))}
             {article.coverId && (
               <SafeImage
                 className="reading-cover"
@@ -166,13 +271,23 @@ function ContentBody({
                 alt={article.title}
               />
             )}
-            <time>{article.date}</time>
-            <h3>{article.title}</h3>
-            <p className="reading-summary">{article.summary}</p>
+            <ArticleTime
+              date={article.date}
+              timeZone={content!.location.timeZone}
+            />
+            {article.title.trim() && (
+              <DetailHeading>{article.title}</DetailHeading>
+            )}
+            {article.summary.trim() && (
+              <p className="reading-summary">{article.summary}</p>
+            )}
             <div className="prose">
-              {article.body.split(/\n\s*\n/).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+              {article.body
+                .split(/\n\s*\n/)
+                .filter((p) => p.trim())
+                .map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
             </div>
             {article.url && (
               <a
@@ -189,12 +304,21 @@ function ContentBody({
         ) : (
           <div className="article-list">
             {content!.articles.map((a) => (
-              <button key={a.id} onClick={() => setSelected(a.id)}>
-                <SafeImage src={mediaUrl(a.coverId, true)} alt="" />
+              <button
+                className={`${a.coverId ? "" : "text-only"}${a.title.trim() ? "" : " untitled"}`}
+                key={a.id}
+                onClick={() => setSelected(a.id)}
+              >
+                {a.coverId && (
+                  <SafeImage src={mediaUrl(a.coverId, true)} alt="" />
+                )}
                 <div>
-                  <time>{a.date}</time>
-                  <h3>{a.title}</h3>
-                  <p>{a.summary}</p>
+                  {a.title.trim() && <h3>{a.title}</h3>}
+                  {articleExcerpt(a) && <p>{articleExcerpt(a)}</p>}
+                  <ArticleTime
+                    date={a.date}
+                    timeZone={content!.location.timeZone}
+                  />
                 </div>
                 <ArrowUpRight size={20} />
               </button>
@@ -207,13 +331,7 @@ function ContentBody({
       {panel === "projects" &&
         (project ? (
           <article className="reading-view">
-            <button
-              className="text-button back-link"
-              onClick={() => setSelected("")}
-            >
-              <ArrowLeft size={16} />
-              所有项目
-            </button>
+            {detailToolbar("所有项目", () => setSelected(""))}
             {project.coverId && (
               <SafeImage
                 className="reading-cover"
@@ -222,7 +340,7 @@ function ContentBody({
               />
             )}
             <span className="eyebrow">A WORK IN PROGRESS</span>
-            <h3>{project.title}</h3>
+            <DetailHeading>{project.title}</DetailHeading>
             <p className="reading-summary">{project.summary}</p>
             <div className="prose">
               {project.description.split(/\n\s*\n/).map((p, i) => (
@@ -267,15 +385,11 @@ function ContentBody({
       {panel === "collections" &&
         (collection ? (
           <article className="reading-view collection-detail">
-            <button
-              className="text-button back-link"
-              onClick={() => setSelected(filter === "全部" ? "" : filter)}
-            >
-              <ArrowLeft size={16} />
-              返回收集
-            </button>
+            {detailToolbar("返回收集", () =>
+              setSelected(filter === "全部" ? "" : filter),
+            )}
             <span className="small-tag">{collection.kind}</span>
-            <h3>{collection.title}</h3>
+            <DetailHeading>{collection.title}</DetailHeading>
             {collection.imageId && (
               <SafeImage
                 className="collection-detail-image"
@@ -290,8 +404,7 @@ function ContentBody({
             </div>
             {collection.source && (
               <p className="collection-detail-source">
-                {collection.demo ? "示例素材 · " : "来源 · "}
-                {collection.source}
+                来源 · {collection.source}
               </p>
             )}
             {collection.url && (
@@ -360,10 +473,7 @@ function ContentBody({
                       </h3>
                       <p>{c.description}</p>
                       {c.source && (
-                        <small className="source-line">
-                          {c.demo ? "示例素材 · " : ""}
-                          {c.source}
-                        </small>
+                        <small className="source-line">{c.source}</small>
                       )}
                       <span
                         className="collection-detail-hint"
@@ -397,29 +507,42 @@ function ContentBody({
         ))}
       {panel === "about" && (
         <div className="about-content">
-          <Cat />
-          <p className="about-intro">{content!.profile.introduction}</p>
-          <p>{content!.profile.description}</p>
-          <p>
-            这是我的个人空间。把作品、文字和日常放在一起，也为下一次突如其来的灵感，留一个位置。
-          </p>
-          <div className="about-motto">{content!.profile.motto}</div>
+          <div className="about-heading">
+            <Cat />
+            {onEdit && <EditButton onClick={onEdit} label="编辑认识我" />}
+          </div>
+          {editing && (
+            <p className="about-edit-hint">
+              点击下方文字直接修改，点击底部悬浮栏的「保存修改」。
+            </p>
+          )}
+          <AboutText
+            field="introduction"
+            label="个人介绍"
+            className="about-intro"
+            maxLength={300}
+          />
+          <AboutText
+            field="description"
+            label="简介（与首页共用）"
+            maxLength={300}
+          />
+          <AboutText field="aboutBody" label="认识我正文" maxLength={5000} />
+          <AboutText
+            field="motto"
+            label="寄语（与页脚共用）"
+            className="about-motto"
+            maxLength={150}
+          />
         </div>
       )}
       {panel === "sources" && (
         <div className="sources-content">
-          <p>
-            {content!.profile.demo
-              ? "此首页目前包含可替换的示例内容。照片、项目文案和音乐用来展示布局，不代表站主的真实拍摄或经历。"
-              : "页面内容由站主管理；素材来源列于下方。"}
-          </p>
+          <p>页面内容由站主管理；素材来源列于下方。</p>
           <h3>照片</h3>
           {content!.photos.map((p) => (
             <p key={p.id}>
-              <strong>
-                {p.title}
-                {p.demo ? "（示例）" : ""}
-              </strong>
+              <strong>{p.title}</strong>
               <br />
               {p.source || "站主上传"}
             </p>
@@ -427,10 +550,7 @@ function ContentBody({
           <h3>收集</h3>
           {content!.collections.map((c) => (
             <p key={c.id}>
-              <strong>
-                {c.title}
-                {c.demo ? "（示例）" : ""}
-              </strong>
+              <strong>{c.title}</strong>
               <br />
               {c.source || "站主收集"}
             </p>
@@ -438,10 +558,7 @@ function ContentBody({
           <h3>音乐</h3>
           {content!.tracks.map((t) => (
             <p key={t.id}>
-              <strong>
-                {t.title}
-                {t.demo ? "（示例）" : ""}
-              </strong>
+              <strong>{t.title}</strong>
               <br />
               {t.source || t.artist}
             </p>
@@ -452,7 +569,8 @@ function ContentBody({
             <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
               Open-Meteo
             </a>
-            （CC BY 4.0）。悉尼时间使用 Australia/Sydney
+            （CC BY 4.0）；城市搜索数据来自 GeoNames。时间使用站主设置的{" "}
+            {content!.location.timeZone}
             时区。像素猫为本项目原创品牌标识。
           </p>
         </div>
