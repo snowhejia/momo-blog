@@ -1,4 +1,6 @@
-![Momo Blog — 把好奇心，变成作品。](docs/images/banner.png)
+<p align="center">
+  <img src="docs/images/banner.png" alt="Momo Blog — 把好奇心，变成作品。" width="600">
+</p>
 
 <div align="center">
 
@@ -12,10 +14,29 @@
 
 ## 预览
 
-| 清新绿                                                                          | 卡通粉                                                                                    | 午夜紫                                                                                          |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [![清新绿](docs/images/homepage-preview.png)](docs/images/homepage-preview.png) | [![卡通粉](docs/images/homepage-cartoon-pink.png)](docs/images/homepage-cartoon-pink.png) | [![午夜紫](docs/images/homepage-midnight-purple.png)](docs/images/homepage-midnight-purple.png) |
-| 自然留白 · 哑光纸感                                                             | 圆润文字 · 猫咪贴纸                                                                       | 深色磨砂 · 紫色微光                                                                             |
+<table>
+  <tr>
+    <th width="33.33%" align="center">清新绿</th>
+    <th width="33.33%" align="center">卡通粉</th>
+    <th width="33.33%" align="center">午夜紫</th>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      <a href="docs/images/homepage-preview.png"><img src="docs/images/homepage-preview.png" alt="清新绿主题首页" width="280"></a>
+    </td>
+    <td align="center" valign="top">
+      <a href="docs/images/homepage-cartoon-pink.png"><img src="docs/images/homepage-cartoon-pink.png" alt="卡通粉主题首页" width="280"></a>
+    </td>
+    <td align="center" valign="top">
+      <a href="docs/images/homepage-midnight-purple.png"><img src="docs/images/homepage-midnight-purple.png" alt="午夜紫主题首页" width="280"></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">自然留白 · 哑光纸感</td>
+    <td align="center">圆润文字 · 猫咪贴纸</td>
+    <td align="center">深色磨砂 · 紫色微光</td>
+  </tr>
+</table>
 
 点击图片查看大图。截图使用示例内容，天气为演示数据。
 
