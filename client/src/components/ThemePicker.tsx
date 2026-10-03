@@ -20,7 +20,7 @@ const themes = [
   },
   {
     id: "midnight",
-    title: "午夜星光",
+    title: "午夜紫",
     subtitle: "夜深了，也有温柔的光",
     detail: "深色磨砂 · 细线面板 · 星轨微光",
     icon: MoonStar,
