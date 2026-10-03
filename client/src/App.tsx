@@ -157,7 +157,6 @@ export default function App() {
             href="/"
             onClick={(event) => route.follow(event, "home")}
           >
-            <Cat />
             <span>
               {content.profile.name.toLowerCase()}
               <i>.</i>

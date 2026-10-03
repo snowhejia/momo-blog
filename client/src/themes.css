@@ -232,12 +232,6 @@
 :root[data-theme="midnight"] .cat {
   filter: drop-shadow(0 0 2px #ddd2f68a);
 }
-:root[data-theme="midnight"] .brand .cat {
-  background: #dcd9dd;
-  padding: 3px;
-  border-radius: 11px;
-  filter: none;
-}
 :root[data-theme="midnight"] .site-header nav a.active {
   color: #d4c9f6;
 }

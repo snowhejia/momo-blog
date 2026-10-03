@@ -109,17 +109,12 @@ button:hover:not(:disabled) {
 .brand {
   display: flex;
   align-items: center;
-  gap: 15px;
 }
 .cat {
   width: 38px;
   height: 38px;
   image-rendering: pixelated;
   object-fit: contain;
-}
-.brand .cat {
-  width: 45px;
-  height: 45px;
 }
 .brand > span {
   font-family: "Space Grotesk", sans-serif;
@@ -2730,10 +2725,6 @@ body:has(.admin-bar) .toast {
   .brand > span {
     font-size: 35px;
   }
-  .brand .cat {
-    width: 38px;
-    height: 38px;
-  }
   .site-header nav {
     gap: 22px;
     margin-left: 0;
@@ -2876,15 +2867,8 @@ body:has(.admin-bar) .toast {
     gap: 15px;
     padding: 21px 5px 12px;
   }
-  .brand {
-    gap: 9px;
-  }
   .brand > span {
     font-size: 32px;
-  }
-  .brand .cat {
-    width: 34px;
-    height: 34px;
   }
   .header-contact {
     margin-left: auto;
