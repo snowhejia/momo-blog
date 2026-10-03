@@ -733,8 +733,8 @@ img.project-cover {
   min-height: 0;
   display: grid;
   grid-auto-rows: minmax(0, 1fr);
-  margin-top: 8px;
-  gap: 4px;
+  margin-top: 12px;
+  gap: 8px;
   overflow: hidden;
 }
 .home-article {
@@ -764,24 +764,24 @@ img.project-cover {
   flex-direction: column;
   justify-content: center;
   border-bottom: 1px solid var(--theme-line, #edede6);
-  padding-bottom: 1px;
-  gap: 1px;
+  padding-bottom: 4px;
+  gap: 3px;
 }
 .home-article > span > * {
   flex-shrink: 0;
 }
 .home-article strong {
-  font-size: clamp(12px, 25cqh, 15px);
+  font-size: 13px;
   font-weight: 550;
-  line-height: 1.25;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .home-article .article-excerpt {
-  font-size: clamp(10px, 22cqh, 12px);
-  line-height: 1.25;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--theme-muted, #78816b);
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -792,17 +792,61 @@ img.project-cover {
 .home-article.untitled .article-excerpt {
   color: var(--ink);
   -webkit-line-clamp: 2;
-  font-size: clamp(12px, 25cqh, 15px);
+  font-size: 13px;
 }
 .home-article .article-time {
-  font-size: clamp(9px, 19cqh, 11px);
+  font-size: 10px;
   color: var(--theme-muted, #818479);
-  line-height: 1.25;
+  line-height: 1.4;
   flex-shrink: 0;
 }
+@container article-row (max-height: 62px) {
+  .home-article > span {
+    padding-bottom: 0;
+  }
+  .home-article strong,
+  .home-article .article-excerpt {
+    line-height: 1.4;
+  }
+}
+@container article-row (max-height: 54px) {
+  .home-article > span {
+    gap: 2px;
+  }
+  .home-article strong,
+  .home-article.untitled .article-excerpt {
+    font-size: 12px;
+  }
+  .home-article .article-excerpt {
+    font-size: 10px;
+  }
+  .home-article .article-time {
+    font-size: 9px;
+  }
+}
 @container article-row (max-height: 48px) {
+  .home-article > span {
+    gap: 1px;
+  }
+  .home-article strong,
+  .home-article .article-excerpt,
+  .home-article .article-time {
+    line-height: 1.25;
+  }
   .home-article.untitled .article-excerpt {
     -webkit-line-clamp: 1;
+  }
+}
+@container article-row (min-height: 76px) {
+  .home-article > span {
+    gap: 4px;
+  }
+  .home-article strong,
+  .home-article.untitled .article-excerpt {
+    font-size: 14px;
+  }
+  .home-article .article-excerpt {
+    font-size: 12px;
   }
 }
 .article-time {
