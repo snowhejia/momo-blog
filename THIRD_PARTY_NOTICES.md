@@ -9,6 +9,7 @@ Momo Blog 的代码与文档采用根目录中的 [MIT License](LICENSE)。第�
 | `assets/demo/sydney.png` | 使用 ImageGen 生成的悉尼示意图，非作者实拍；生成来源与提示见 [SOURCES.md](assets/demo/SOURCES.md)。 |
 | `assets/demo/poster.png`、`architecture.png` | 本项目原创演示图形，按项目 MIT 许可提供；生成器见 [create-demo-art.mjs](scripts/create-demo-art.mjs)。 |
 | `client/public/assets/cat.svg` | 本项目原创像素猫标识，按项目 MIT 许可提供。 |
+| `client/public/assets/themes/cartoon-cat.svg`、`desktop-cat.svg`、`paw-trail.svg` | 本项目绘制的卡通猫、文件夹贴纸及脚印装饰，按项目 MIT 许可提供。 |
 | `assets/profile/avatar-demo.webp` | 经提供者同意随项目发布的毛绒猫演示头像。其来源说明不构成对第三方摄影或角色权利的额外授权，使用自己的站点时可替换为有权使用的头像。见 [头像说明](assets/profile/README.md)。 |
 | `docs/images/homepage-preview.png` | 提供者授权用于 README 展示的示例站截图；其中的照片、头像和字体仍分别适用原有许可。 |
 | DM Sans、Space Grotesk | 页面通过 Google Fonts 加载，字体采用 SIL Open Font License。中文使用设备上的系统字体；系统字体不随本仓库分发。 |
