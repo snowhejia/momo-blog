@@ -770,6 +770,9 @@ img.project-cover {
 .home-article > span > * {
   flex-shrink: 0;
 }
+.home-article:last-child > span {
+  border-bottom: 0;
+}
 .home-article strong {
   font-size: 13px;
   font-weight: 550;
@@ -794,49 +797,6 @@ img.project-cover {
   -webkit-line-clamp: 2;
   font-size: 13px;
 }
-.home-article .article-time {
-  font-size: 10px;
-  color: var(--theme-muted, #818479);
-  line-height: 1.4;
-  flex-shrink: 0;
-}
-@container article-row (max-height: 62px) {
-  .home-article > span {
-    padding-bottom: 0;
-  }
-  .home-article strong,
-  .home-article .article-excerpt {
-    line-height: 1.4;
-  }
-}
-@container article-row (max-height: 54px) {
-  .home-article > span {
-    gap: 2px;
-  }
-  .home-article strong,
-  .home-article.untitled .article-excerpt {
-    font-size: 12px;
-  }
-  .home-article .article-excerpt {
-    font-size: 10px;
-  }
-  .home-article .article-time {
-    font-size: 9px;
-  }
-}
-@container article-row (max-height: 48px) {
-  .home-article > span {
-    gap: 1px;
-  }
-  .home-article strong,
-  .home-article .article-excerpt,
-  .home-article .article-time {
-    line-height: 1.25;
-  }
-  .home-article.untitled .article-excerpt {
-    -webkit-line-clamp: 1;
-  }
-}
 @container article-row (min-height: 76px) {
   .home-article > span {
     gap: 4px;
@@ -852,11 +812,6 @@ img.project-cover {
 .article-time {
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-}
-.article-footer {
-  font-size: 10px;
-  color: var(--theme-muted, #85867f);
-  margin-top: 10px;
 }
 .calendar-card {
   display: flex;
@@ -3314,8 +3269,18 @@ body:has(.admin-bar) .toast {
 }
 /* Keep the complete desktop composition inside the viewport. */
 @media (min-width: 1101px) {
+  .site-shell:not(.section-shell) {
+    min-height: 0;
+  }
+  .site-shell:not(.section-shell) > .site-footer {
+    height: 24px;
+    margin-top: 4px;
+  }
   .bento-grid {
-    grid-template-rows: minmax(0, 1.08fr) minmax(0, 1.1fr) minmax(0, 0.7fr);
+    grid-template-rows: minmax(0, 1.08fr) minmax(0, 1.1fr) minmax(0, 0.85fr);
+  }
+  .bento-row {
+    grid-template-rows: minmax(0, 1fr);
   }
   .hero-card h1 {
     font-size: clamp(48px, 4.18vw, 70px);
@@ -3370,8 +3335,10 @@ body:has(.admin-bar) .toast {
   .album-cover {
     width: 83px;
     height: 80px;
+    max-height: 100%;
   }
   .music-card {
+    min-height: 0;
     padding-top: 12px;
   }
   .music-heading h2 {

@@ -24,7 +24,6 @@ import {
 } from "../../../shared/model";
 import { request } from "../api";
 import { articleExcerpt } from "../../../shared/articles";
-import { ArticleTime } from "./ArticleTime";
 import {
   Cat,
   Editable,
@@ -404,7 +403,6 @@ export function ArticleCard({ open, edit }: CardActions) {
               {articleExcerpt(a) && (
                 <span className="article-excerpt">{articleExcerpt(a)}</span>
               )}
-              <ArticleTime date={a.date} timeZone={content.location.timeZone} />
             </span>
           </button>
         ))}
@@ -412,9 +410,6 @@ export function ArticleCard({ open, edit }: CardActions) {
           <Empty>留一点文字，记录那些正在发生的事。</Empty>
         )}
       </div>
-      <span className="article-footer">
-        {content?.articles.length || 0} 篇随笔，持续生长。
-      </span>
     </section>
   );
 }

@@ -739,6 +739,10 @@
   :root[data-theme="blush"] .site-shell:not(.section-shell) {
     min-height: 0;
   }
+  :root[data-theme="blush"] .site-shell:not(.section-shell) > .site-footer {
+    height: 24px;
+    margin-top: 8px;
+  }
   :root[data-theme="blush"] .bento-grid {
     grid-template-rows: minmax(0, 1.08fr) minmax(0, 1.1fr) minmax(0, 0.85fr);
   }
@@ -877,9 +881,6 @@
   :root[data-theme="blush"] .home-article {
     gap: 12px;
   }
-  :root[data-theme="blush"] .article-footer {
-    margin-top: 6px;
-  }
   :root[data-theme="blush"] .calendar-grid {
     margin-top: 0;
   }
@@ -952,10 +953,6 @@
   }
   :root[data-theme="blush"] .social-row {
     padding-top: 6px;
-  }
-  :root[data-theme="blush"] .site-shell:not(.section-shell) > .site-footer {
-    height: 25px;
-    margin-top: 8px;
   }
 }
 @media (min-width: 1400px) {
