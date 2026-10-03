@@ -1,6 +1,6 @@
 # Momo Blog · 使用与维护
 
-[返回项目介绍](../README.md) · [Railway 部署](../README.md#railway-部署)
+[返回项目介绍](../README.md) · [Railway 部署](deployment.md)
 
 ## 本地使用
 
@@ -23,7 +23,7 @@ npm start
 没有预设邮箱、密码或默认账号。第一次启动后：
 
 1. 打开 [本地管理入口](http://127.0.0.1:4318/login)，线上部署使用你的网站域名加 `/login`；也可以点首页底部「管理」。
-2. 从运行网站的机器上读取 `DATA_DIR/setup-token.txt`（默认 `data/setup-token.txt`）。Railway 请在服务的 Console 中读取；按 README 的卷挂载设置，执行 `cat /app/data/setup-token.txt`。若配置了 `SETUP_TOKEN` 环境变量，使用该值。
+2. 从运行网站的机器上读取 `DATA_DIR/setup-token.txt`（默认 `data/setup-token.txt`）。Railway 请在服务的 Console 中读取；按 [部署指南](deployment.md) 的卷挂载设置，执行 `cat /app/data/setup-token.txt`。若配置了 `SETUP_TOKEN` 环境变量，使用该值。
 3. 输入你自己的邮箱和至少 12 位密码，点击「创建并登录」。
 
 令牌在运行服务的机器上生成，线上与本地实例的令牌相互独立；创建管理员后初始化入口自动关闭。账号和会话保存在 SQLite，密码由 Better Auth 哈希保存。此阶段没有邮件服务和密码找回功能。
