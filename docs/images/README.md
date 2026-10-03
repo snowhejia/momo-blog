@@ -2,40 +2,49 @@
 
 ## 横幅
 
-`banner.png` 是为 Momo Blog 生成的横向封面，使用清新绿主题的米白、深灰与青柠配色。风格为二维扁平图形，右侧以植物、波浪、时钟和音乐卡片呼应网站内容。
+`banner.png` 使用清新绿配色与二维扁平风格：米白背景、深色字标、青柠下划线，以及淡绿圆底中的猫咪头像和细轨道。标题与中文标语采用常规字重。
 
 - 生成工具：内置 ImageGen
 - 日期：2026-10-03
-- 流程：生成清新绿封面，再去除纹理、摄影和立体效果
+- 风格：可爱、清新、简洁
+- 参考：用户提供的清新绿首页截图，沿用其色彩、下划线和头像式猫咪画法
+- 旧版横幅保留在 Git 历史中
 
 <details>
-<summary>初始清新绿提示词</summary>
+<summary>构图提示词</summary>
 
 ```text
-Use case: ads-marketing
-Asset type: Horizontal GitHub README banner for "Momo Blog".
-Primary request: A new banner using ONLY the project's fresh green theme. Very wide 3:1 panoramic composition, 1800 x 600 or equivalent. Make it look like a confident minimal Swiss-inspired web design, not an illustrated greeting card.
-Style: flat and precise editorial graphic design. Smooth warm off-white background #f6f6f1, charcoal #20231e, energetic lime #d1f36b, subtle sage-gray hairline borders. Matte clean surfaces with almost no visible texture, almost no shadow. It should feel as clean as a beautifully typeset personal homepage.
-Composition: generous margins. Left 55 percent: a small tracked monospace eyebrow "DESIGN · CODE · EVERYDAY"; below it, a bold very large dark charcoal geometric SANS-SERIF wordmark "momo blog." with only the final period lime green. Beneath that, the concise Chinese line "把好奇心，变成作品。" in an elegant readable sans-serif font. Align all text on one clear left edge. The project wordmark is the strongest element.
-Right 35 percent: a small orderly asymmetrical 2-by-2 Bento arrangement, inspired by the actual personal homepage. Four rectangular cards with subtle small rounded corners and thin sage borders: a larger clean off-white note card with a small charcoal outline sprout and two simple horizontal green strokes; a photographic closeup ocean-wave card with clean horizon and pale sky; a dark charcoal clock card with a large warm white "12:08" and a tiny lime dot; a small cream music card with one simple thin-line music note and a lime progress bar. The four cards share a consistent grid, no overlapping, no tilt, no layered stack. No fake interface body copy.
-Text verbatim: "DESIGN · CODE · EVERYDAY", "momo blog.", "把好奇心，变成作品。", and "12:08". No other text. Chinese must be legible and accurate.
-Constraints: ONLY fresh green identity. No pink, purple, blue gradients, or multi-theme panels. No serif typography. No watercolor, no paper collage, no plants outside cards, no 3D icons, no cute mascots or cats, no drop-shadow stacks, no hearts, no moon, no browser or device frame, no badges or watermark. Use restrained design and crisp typography. Full-width landscape banner, not a square or poster.
+Redesign the supplied banner using the NEW screenshot reference as the main art direction.
+
+Image 1: the most recent banner draft. Replace its oversized condensed green lettering, full-body mascot, tags and footer strip.
+Image 2: the user's preferred visual reference. Match its fresh, cute, calm character: warm ivory background, dark friendly sans-serif typography, a clean lime highlighter stroke, and the SMALL ROUND CAT FACE in a pale-green circle with fine orbit lines. The cat in this screenshot is the visual reference to follow closely. Keep its simple rounded silhouette, green contour, cream face, small tan/orange patches, tiny facial features and little yellow accent. Do not invent another full-body cat.
+
+Create a carefully designed 3:1 horizontal GitHub README cover for Momo Blog, 2160x720 or equivalent. Use the first website theme only. This is a flat graphic banner, not a screenshot of a website.
+
+Composition:
+- Open warm ivory background (#fafbf5), clean solid color.
+- Left two-thirds: a small neatly spaced monospace "DESIGN · CODE · EVERYDAY"; below, the bold friendly sans-serif title "Momo Blog" as the dominant visual in charcoal, on a single line. Comfortable margins and carefully balanced letter spacing. A vivid lime flat underline/highlighter intersects the lower edge of "Momo", behind the letters, like the reference's Chinese headline treatment.
+- Below the title, a single clear dark-green Chinese line "把好奇心，变成作品。". Leave enough breathing room; make the text block cohesive rather than scattered.
+- Right third: the SMALL CAT FACE from the screenshot, faithfully interpreted as a very simple cute flat illustration, centered in a pale-green disc. Surround it with a fine sage diagonal elliptical orbit, one small lime satellite dot, and a small understated 4-point sparkle. No large body or paws, no sunglasses, no thick dark outline, no rendering or detailed fur.
+- Place the circle close enough to the title for the whole composition to feel connected and balanced. A faint fine orbit may extend into the negative space beside the wordmark.
+- A tiny "MADE WITH CURIOSITY" at the lower-right aligns with the artwork. One very fine sage rule and minimal editorial alignment may support the bottom margin. Do not draw an outer UI frame.
+
+The design should feel like charming refined Japanese stationery blended with a well-designed independent personal website. Thoughtful proportions, typographic contrast, asymmetric balance, cute avatar accent, plenty of uncluttered ivory space.
+Exact text only: "DESIGN · CODE · EVERYDAY", "Momo Blog", "把好奇心，变成作品。", "MADE WITH CURIOSITY".
+Strictly FLAT 2D: solid fills and simple outlines. No photo, 3D, fur, textures, gradients, drop shadows, physical paper rendering or generic AI mascot. No card grid, buttons, menus, labels CREATE/COLLECT/PLAY, large color bands or watermark. No pink/purple/blue. Keep the 3:1 horizontal ratio.
 ```
 
 </details>
 
 <details>
-<summary>最终扁平风格提示词</summary>
+<summary>最终字重调整提示词</summary>
 
 ```text
-Edit the supplied Momo Blog banner into a strictly FLAT 2D graphic. Preserve its existing 3:1 panoramic composition, all text verbatim, left alignment, relative text sizes, and the four-card Bento arrangement on the right. Keep only the fresh green theme.
+Typography-only refinement. Image 1 is the latest banner: its "Momo Blog" title is now TOO THIN. Image 2 is an earlier banner: its title was TOO BOLD. The user wants a NORMAL, REGULAR weight between these two extremes.
 
-The final look must be crisp vector-style graphic design: every area is a perfectly uniform solid color. Background a single flat #f6f6f1. Title and icons solid #20231e. Lime accents solid #cdef73. Very light sage outlines #cbd1c4. No other hues.
-Remove ALL paper texture, grain, noise, lighting, gloss, highlights, gradients, shadows, blurred edges, bevels, depth and 3D rendering from the whole image, especially the letters and cards.
-Replace the realistic ocean photograph in the upper-right card with a minimal flat illustration using only ivory and sage-green: a small lime sun circle above two or three clean overlapping sage wave silhouettes. No photography, realistic water, sky gradients or scenic detail.
-Other cards remain completely flat rectangles with consistent subtle rounded corners, single-pixel-look hairline borders, uniform fills. Keep the sprout as a simple dark outline icon, the clock as a solid charcoal block with clean white "12:08" and a lime dot, the music note as a dark outline with a straight lime progress bar.
-All text must remain correct and very sharp: "DESIGN · CODE · EVERYDAY", "momo blog." with lime final period, "把好奇心，变成作品。", and "12:08".
-The result must resemble a finished clean SVG/web graphic, NOT an illustration of physical objects. No pink or purple. No added text or objects. Keep the wide aspect ratio.
+Use Image 1 as the canvas. Change ONLY the English title "Momo Blog" to ordinary geometric sans-serif REGULAR weight (font-weight 400, similar to DM Sans Regular or Helvetica Neue Regular). It should have normal solid strokes, about twice as thick as the very thin title in Image 1, but clearly less than half as thick as Image 2's bold title. At this image's resolution, use vertical stems around 20–22 pixels wide. Normal everyday typography: not Light or Thin, not Bold or Black. Keep the large open counters and clean geometric shapes, charcoal color, same title size, baseline, wording and alignment.
+Do not change the Chinese tagline; its current regular weight in Image 1 is correct. Keep the exact cat, circle, orbit, underline, eyebrow, footer, margins, background and all other details pixel-consistent with Image 1. Do not add anything. Maintain the 3:1 aspect ratio.
+The sole visible change from Image 1 should be the English title gaining enough weight to read as NORMAL REGULAR.
 ```
 
 </details>
