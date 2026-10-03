@@ -357,6 +357,9 @@
 :root[data-theme="blush"] .article-card > .section-top {
   background: var(--retro-pink);
 }
+:root[data-theme="blush"] .home-articles {
+  margin-top: 0;
+}
 :root[data-theme="blush"] .section-top h2 {
   font-size: 15px;
   letter-spacing: 0;
@@ -872,14 +875,7 @@
     margin-bottom: 5px;
   }
   :root[data-theme="blush"] .home-article {
-    min-height: 50px;
     gap: 12px;
-  }
-  :root[data-theme="blush"] .home-article > img {
-    max-height: 48px;
-  }
-  :root[data-theme="blush"] .home-article > span {
-    gap: 1px;
   }
   :root[data-theme="blush"] .article-footer {
     margin-top: 6px;
