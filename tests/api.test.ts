@@ -965,6 +965,39 @@ test("独立数据库：首页、单管理员、素材、访客和持久化", as
         assert.equal(stats.todayVisitors, 1);
       },
     );
+    await t.test("悉尼、上海、悉尼切换后，夏令时午夜可再次签到", async () => {
+      const previousInstant = instant;
+      const previousLocation = home.content.location;
+      const visitor = request.agent(app);
+      const saveZone = async (timeZone: string) => {
+        home.content.location = { ...previousLocation, timeZone };
+        home = (await admin.put("/api/home").send(home).expect(200)).body;
+      };
+      try {
+        instant = new Date("2026-10-04T12:59:59Z");
+        await saveZone("Australia/Sydney");
+        let state = (await visitor.post("/api/checkin").expect(200)).body;
+        assert.equal(state.checkedIn, true);
+        assert.equal(state.checkins, 1);
+        await saveZone("Asia/Shanghai");
+        assert.equal((await visitor.get("/api/stats")).body.checkedIn, true);
+        await saveZone("Australia/Sydney");
+        assert.equal((await visitor.get("/api/stats")).body.checkedIn, true);
+
+        instant = new Date("2026-10-04T13:00:01Z");
+        assert.equal(zonedDay(instant, "Australia/Sydney"), "2026-10-05");
+        assert.equal(zonedDay(instant, "Asia/Shanghai"), "2026-10-04");
+        assert.equal((await visitor.get("/api/stats")).body.checkedIn, false);
+        state = (await visitor.post("/api/checkin").expect(200)).body;
+        assert.equal(state.checkedIn, true);
+        assert.equal(state.checkins, 2);
+        assert.equal((await visitor.post("/api/checkin")).body.checkins, 2);
+      } finally {
+        instant = previousInstant;
+        home.content.location = previousLocation;
+        home = (await admin.put("/api/home").send(home).expect(200)).body;
+      }
+    });
     await t.test(
       "数据库重新打开后内容、地点、媒体、会话、签到和点赞保留",
       async () => {

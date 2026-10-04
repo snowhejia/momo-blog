@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { ArrowUpRight, ArrowRight } from "lucide-react";
 import { useSite } from "./store";
+import { watchSiteDay } from "./daily-refresh";
 import { themeCatAsset, useSiteTheme } from "./theme";
 import { mediaUrl, zonedDay } from "../../shared/model";
 import { Cat, Dialog, Editable, EditButton } from "./components/Common";
@@ -90,14 +91,9 @@ export default function App() {
   const previousRoute = useRef({ page: route.page, id: route.id });
   const now = useClock();
   const savedTimeZone = home?.content.location.timeZone;
-  const day = `${savedTimeZone}:${zonedDay(now, savedTimeZone)}`;
-  const lastDay = useRef(day);
   useEffect(() => {
-    if (lastDay.current !== day) {
-      lastDay.current = day;
-      void refreshAuth().catch(() => {});
-    }
-  }, [day]);
+    if (savedTimeZone) return watchSiteDay(savedTimeZone, refreshAuth);
+  }, [savedTimeZone]);
   useEffect(() => {
     const previous = previousRoute.current;
     const changedPage = previous.page !== route.page;

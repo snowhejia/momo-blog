@@ -29,7 +29,7 @@ interface SiteStore {
   saving: boolean;
   saveError: string;
   refresh: () => Promise<void>;
-  refreshAuth: () => Promise<void>;
+  refreshAuth: (signal?: AbortSignal) => Promise<void>;
   beginEdit: () => void;
   setTheme: (theme: SiteTheme) => void;
   cancelEdit: () => Promise<void>;
@@ -61,8 +61,9 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => setToast(""), 4500);
     return () => clearTimeout(timer);
   }, [toast]);
-  const refreshAuth = async () => {
-    const state = await request<VisitorState>("/api/state");
+  const refreshAuth = async (signal?: AbortSignal) => {
+    const state = await request<VisitorState>("/api/state", { signal });
+    if (signal?.aborted || !mounted.current) return;
     setAuth(state.auth);
     setStats(state.stats);
   };
